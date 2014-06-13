@@ -67,8 +67,6 @@ class CountyMap
       .style('fill', 'none')
 
   appendCounties: (counties) =>
-    # This seems a little convuluted, but all is necessary to provide nice, non-overlapping
-    # tooltips (outlines and county metadata) on mouseover.
     @counties = @svg.selectAll('.county')
       .data(topojson.feature(counties, counties.objects.california_counties).features)
       .enter().append('g')
@@ -76,29 +74,28 @@ class CountyMap
     @counties.append('path').attr('class', 'fill')
       .datum((d) -> d)
       .attr('d', @path)
-    @hoverLayer = @svg.selectAll('.county_hover')
-      .data(topojson.feature(counties, counties.objects.california_counties).features)
-      .enter()
-      .append('g')
-      .attr('class', 'tooltip')
-      .style('opacity', 0)
-    @hoverLayer.append('path').datum((d) -> d)
-      .attr('d', @path)
-      .style('stroke', 'black')
-      .style('stroke-width', 2)
-      .style('fill', 'white')
-      .style('fill-opacity',0)
-    @hoverLayer.append('text')
-      .text((d) -> d.properties.name)
-      .attr('x', (d) => @path.centroid(d)[0])
-      .attr('y', (d) => @path.centroid(d)[1])
-      .attr('text-anchor', 'middle')
-      .style('font-family', 'arial')
-      .style('font-weight', 'bold')
-      .style('font-size', '8pt')
-    @hoverLayer
-      .on('mouseover', (d) -> d3.select(@).style('opacity', 1))
-      .on('mouseout', -> d3.select(@).style('opacity', 0))
+
+    @counties
+      .on('mouseover', (d) =>
+        @svg.append('path').datum(d).attr('d', @path)
+          .style('stroke', 'black')
+          .style('stroke-width', 2)
+          .style('opacity', 0.5)
+          .attr('class', 'tooltip')
+          .style('fill', 'none')
+        centroid = @path.centroid(d)
+        @svg.append('text').datum(d)
+          .text((d) -> d.properties.name)
+          .attr('x', centroid[0])
+          .attr('y', centroid[1])
+          .attr('class', 'tooltip')
+          .style('font-family', 'arial')
+          .style('font-weight', 'bold')
+          .style('font-size', '9pt')
+          .attr('text-anchor', 'middle')
+      ).on('mouseout', -> d3.selectAll('.tooltip').remove())
+
+    @counties.on('click', -> d3.select(@).style('stroke', 'black'))
 
   loadPopulationData: (year, race) ->
     d3.csv("data/race_by_county_#{year}.csv", (error, csv_data) =>
