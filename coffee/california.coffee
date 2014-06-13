@@ -1,9 +1,6 @@
-class CountyMap
-  height: 960
-  width: 1160
-  max: 2000000
-
-  constructor: ->
+class CountyMapControls
+  constructor: (map) ->
+    console.log('CountyMapControls')
     @controls = d3.select('body').append('div')
     @years = @controls.append('select')
     @years.selectAll('option').data([2010, 2020, 2030, 2040, 2050, 2060])
@@ -28,10 +25,19 @@ class CountyMap
 
     selectedYear = => @years.node().value
     selectedRace = => @races.node().value
-    changeEvent = => @loadPopulationData(selectedYear(), selectedRace())
-
+    changeEvent = -> map.loadPopulationData(selectedYear(), selectedRace())
     @years.on('change', changeEvent)
     @races.on('change', changeEvent)
+
+class CountyMap
+  height: 960
+  width: 1160
+  max: 2000
+
+  appendControls: -> new CountyMapControls @
+
+  constructor: ->
+    @appendControls()
 
     @svg = d3.select('body').append('svg')
       .attr('width', @width)
@@ -48,22 +54,45 @@ class CountyMap
       .domain([0, @max/2, @max])
       .range(['#fff', '#00f', 'red'])
     d3.json('data/cali.json', (error, counties) =>
-      @counties = @svg.selectAll('.county')
-        .data(topojson.feature(counties, counties.objects.california_counties).features)
-        .enter().append('path')
-        .attr('class', '.county')
-        .attr('d', @path)
+      @appendCounties(counties)
+      @appendOutline(counties)
       @loadPopulationData 2010, 'Total (All race groups)'
     )
+
+  appendOutline: (counties) ->
+    @svg.append('path')
+      .datum(topojson.mesh(counties, counties.objects.california_counties, (a, b) -> a == b and a.id == b.id))
+      .attr('class', 'outline')
+      .attr('d', @path)
+      .style('stroke', 'black')
+      .style('stroke-width', '1pt')
+      .style('fill', 'none')
+
+
+  appendCounties: (counties) ->
+    @counties = @svg.selectAll('.county')
+      .data(topojson.feature(counties, counties.objects.california_counties).features)
+      .enter().append('path')
+      .attr('class', '.county')
+      .attr('d', @path)
+
 
   loadPopulationData: (year, race) ->
     d3.csv("data/race_by_county_#{year}.csv", (error, csv_data) =>
       pop = {}
       (pop[county["County"]] = county) for county in csv_data
+      colorWrapper = (value, area, county) =>
+        v = parseInt(value.replace(/\,/g, ""))
+        console.log(county, v/area)
+        @colors(v / area)
 
-      colorWrapper = (value) => @colors(value.replace(",",""))
-      @counties.style('fill', (d) -> colorWrapper(pop[d.properties.name][race]))
+      @counties.style('fill', (d) =>
+        colorWrapper(pop[d.properties.name][race], @path.area(d), d.properties.name)
+      )
     )
+
+  applyOutline: ->
+
 
 
 window.map = new CountyMap
