@@ -3,22 +3,71 @@
   var CountyMap;
 
   CountyMap = (function() {
+    CountyMap.prototype.height = 960;
+
+    CountyMap.prototype.width = 1160;
+
+    CountyMap.prototype.max = 2000000;
+
     function CountyMap() {
-      var height, svg, width;
-      height = 960;
-      width = 1160;
-      svg = d3.select('body').append('svg').attr('width', width).attr('height', height);
+      var changeEvent, projection, selectedRace, selectedYear,
+        _this = this;
+      this.controls = d3.select('body').append('div');
+      this.years = this.controls.append('select');
+      this.years.selectAll('option').data([2010, 2020, 2030, 2040, 2050, 2060]).enter().append('option').attr('value', function(d) {
+        return d;
+      }).text(function(d) {
+        return d;
+      });
+      this.races = this.controls.append('select');
+      this.races.selectAll('option').data(['Total (All race groups)', 'White', 'Black', 'American Indian', 'Asian', 'Native Hawaiian and other Pacific Islander', 'Hispanic or Latino', 'Multi-Race']).enter().append('option').attr('value', function(d) {
+        return d;
+      }).text(function(d) {
+        return d;
+      });
+      selectedYear = function() {
+        return _this.years.node().value;
+      };
+      selectedRace = function() {
+        return _this.races.node().value;
+      };
+      changeEvent = function() {
+        return _this.loadPopulationData(selectedYear(), selectedRace());
+      };
+      this.years.on('change', changeEvent);
+      this.races.on('change', changeEvent);
+      this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
+      projection = d3.geo.albers().scale(5000).rotate([122.2500, 0, 0]).center([0, 37.0500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
+      this.path = d3.geo.path().projection(projection);
+      this.colors = d3.scale.linear().domain([0, this.max / 2, this.max]).range(['#fff', '#00f', 'red']);
       d3.json('data/cali.json', function(error, counties) {
-        console.log(counties);
-        window.counties = counties;
-        return svg.append('path').datum(topojson.feature(counties, counties.objects.california_counties)).attr("d", d3.geo.path().projection(d3.geo.mercator()));
+        _this.counties = _this.svg.selectAll('.county').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('path').attr('class', '.county').attr('d', _this.path);
+        return _this.loadPopulationData(2010, 'Total (All race groups)');
       });
     }
+
+    CountyMap.prototype.loadPopulationData = function(year, race) {
+      var _this = this;
+      return d3.csv("data/race_by_county_" + year + ".csv", function(error, csv_data) {
+        var colorWrapper, county, pop, _i, _len;
+        pop = {};
+        for (_i = 0, _len = csv_data.length; _i < _len; _i++) {
+          county = csv_data[_i];
+          pop[county["County"]] = county;
+        }
+        colorWrapper = function(value) {
+          return _this.colors(value.replace(",", ""));
+        };
+        return _this.counties.style('fill', function(d) {
+          return colorWrapper(pop[d.properties.name][race]);
+        });
+      });
+    };
 
     return CountyMap;
 
   })();
 
-  new CountyMap;
+  window.map = new CountyMap;
 
 }).call(this);
