@@ -1,15 +1,14 @@
 class CountyMapControls
   constructor: (map) ->
-    console.log('CountyMapControls')
-    @controls = d3.select('body').append('div')
-    @years = @controls.append('select')
-    @years.selectAll('option').data([2010, 2020, 2030, 2040, 2050, 2060])
+    controls = d3.select('body').append('div')
+    years = controls.append('select')
+    years.selectAll('option').data([2010, 2020, 2030, 2040, 2050, 2060])
       .enter()
       .append('option')
       .attr('value', (d) -> d)
       .text((d) -> d)
-    @races = @controls.append('select')
-    @races.selectAll('option').data([
+    races = controls.append('select')
+    races.selectAll('option').data([
       'Total (All race groups)'
       'White'
       'Black'
@@ -22,19 +21,17 @@ class CountyMapControls
       .append('option')
       .attr('value', (d) -> d)
       .text((d) -> d)
-
-    selectedYear = => @years.node().value
-    selectedRace = => @races.node().value
+    selectedYear = -> years.node().value
+    selectedRace = -> races.node().value
     changeEvent = -> map.loadPopulationData(selectedYear(), selectedRace())
-    @years.on('change', changeEvent)
-    @races.on('change', changeEvent)
+    years.on('change', changeEvent)
+    races.on('change', changeEvent)
 
 class CountyMap
   height: 960
   width: 1160
   max: 2000
 
-  appendControls: -> new CountyMapControls @
 
   constructor: ->
     @appendControls()
@@ -52,12 +49,14 @@ class CountyMap
       .projection(projection)
     @colors = d3.scale.linear()
       .domain([0, @max/2, @max])
-      .range(['#fff', '#00f', 'red'])
+      .range(['#fff', 'yellow', 'red'])
     d3.json('data/cali.json', (error, counties) =>
       @appendCounties(counties)
       @appendOutline(counties)
       @loadPopulationData 2010, 'Total (All race groups)'
     )
+
+  appendControls: -> new CountyMapControls @
 
   appendOutline: (counties) ->
     @svg.append('path')
@@ -81,12 +80,12 @@ class CountyMap
     d3.csv("data/race_by_county_#{year}.csv", (error, csv_data) =>
       pop = {}
       (pop[county["County"]] = county) for county in csv_data
+
       colorWrapper = (value, area, county) =>
         v = parseInt(value.replace(/\,/g, ""))
-        console.log(county, v/area)
         @colors(v / area)
 
-      @counties.style('fill', (d) =>
+      @counties.transition().style('fill', (d) =>
         colorWrapper(pop[d.properties.name][race], @path.area(d), d.properties.name)
       )
     )
