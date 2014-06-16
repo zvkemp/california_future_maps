@@ -34,26 +34,29 @@ class CountyMap
 
   constructor: ->
     @appendControls()
-
     @svg = d3.select('body').append('svg')
       .attr('width', @width)
       .attr('height', @height)
     projection = d3.geo.albers()
       .scale(15000)
       .rotate([122.2500, 0, 0])
-      .center([0, 37.6500])
+      .center([0, 37.3500])
       .parallels([36, 35])
       .translate([@width / 4, @height / 2])
     @path = d3.geo.path()
       .projection(projection)
     @colors = d3.scale.linear()
-      .domain([0, @max, 1000000])
+      .domain([0, @max, 10000])
       .range(['#fff', '#3498db', '#3498db'])
     d3.json('data/cali.json', (error, counties) =>
-      @appendCounties(counties)
-      @appendOutline(counties)
-      @loadPopulationData 2010, 'Total (All race groups)'
+      d3.csv("data/race_by_county.csv", (error, csv_data) =>
+        @raw_data = csv_data
+        @appendCounties(counties)
+        @appendOutline(counties)
+        @loadPopulationData( "2010", 'Total (All race groups)')
+      )
     )
+
 
   appendControls: -> new CountyMapControls @
 
@@ -67,6 +70,27 @@ class CountyMap
       .style('fill', 'none')
 
     # bay area outline
+
+    filter = @svg.append('defs')
+      .append('filter')
+      .attr('id', 'dropshadow')
+    filter.append('feGaussianBlur')
+      .attr('in', 'SourceAlpha')
+      .attr('stdDeviation', 3)
+      .attr('result', 'blur')
+    filter.append('feOffset')
+      .attr('in', 'blur')
+      .attr('dx', 2)
+      .attr('dy', 2)
+      .attr('result', 'offsetBlur')
+    filter.append('feComponentTransfer')
+      .append('feFuncA')
+      .attr('type', 'linear')
+      .attr('slope', '0.2')
+    #merge = filter.append('feMerge')
+    #merge.append('feMergeNode')
+    #merge.append('feMergeNode')
+    #.attr('in', 'SourceGraphic')
     @svg.append('path')
       .datum(
         topojson.merge(
@@ -77,8 +101,9 @@ class CountyMap
       .attr('d', @path)
       .style('stroke', 'black')
       .style('stroke-width', '2pt')
-      .style('stroke-dasharray', '2, 4')
       .style('fill', 'none')
+      #.attr('filter', "url(#dropshadow)")
+
 
   appendCounties: (counties) =>
     # This seems a little convuluted, but all is necessary to provide nice, non-overlapping
@@ -115,17 +140,15 @@ class CountyMap
       .on('mouseout', -> d3.select(@).style('opacity', 0))
 
   loadPopulationData: (year, race) ->
-    d3.csv("data/race_by_county_#{year}.csv", (error, csv_data) =>
       pop = {}
-      (pop[county["County"]] = county) for county in csv_data
+      (pop[county["County"]] = county) for county in @raw_data when county["YEAR"] is year
 
       colorWrapper = (value, divisor, county) =>
-        v = parseInt(value.replace(/\,/g, ""))
+        v = parseInt(value)
         @colors(v / divisor)
 
       @counties.selectAll('path.fill').transition().style('fill', (d) =>
         colorWrapper(pop[d.properties.name][race], @path.area(d), d.properties.name)
       )
-    )
 
 new CountyMap

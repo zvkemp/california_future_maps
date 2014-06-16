@@ -49,13 +49,16 @@
         _this = this;
       this.appendControls();
       this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
-      projection = d3.geo.albers().scale(15000).rotate([122.2500, 0, 0]).center([0, 37.6500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
+      projection = d3.geo.albers().scale(15000).rotate([122.2500, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
       this.path = d3.geo.path().projection(projection);
-      this.colors = d3.scale.linear().domain([0, this.max, 1000000]).range(['#fff', '#3498db', '#3498db']);
+      this.colors = d3.scale.linear().domain([0, this.max, 10000]).range(['#fff', '#3498db', '#3498db']);
       d3.json('data/cali.json', function(error, counties) {
-        _this.appendCounties(counties);
-        _this.appendOutline(counties);
-        return _this.loadPopulationData(2010, 'Total (All race groups)');
+        return d3.csv("data/race_by_county.csv", function(error, csv_data) {
+          _this.raw_data = csv_data;
+          _this.appendCounties(counties);
+          _this.appendOutline(counties);
+          return _this.loadPopulationData("2010", 'Total (All race groups)');
+        });
       });
     }
 
@@ -64,12 +67,17 @@
     };
 
     CountyMap.prototype.appendOutline = function(counties) {
+      var filter;
       this.svg.append('path').datum(topojson.mesh(counties, counties.objects.california_counties, function(a, b) {
         return a === b && a.id === b.id;
       })).attr('class', 'outline').attr('d', this.path).style('stroke', 'gray').style('stroke-width', '0.5pt').style('fill', 'none');
+      filter = this.svg.append('defs').append('filter').attr('id', 'dropshadow');
+      filter.append('feGaussianBlur').attr('in', 'SourceAlpha').attr('stdDeviation', 3).attr('result', 'blur');
+      filter.append('feOffset').attr('in', 'blur').attr('dx', 2).attr('dy', 2).attr('result', 'offsetBlur');
+      filter.append('feComponentTransfer').append('feFuncA').attr('type', 'linear').attr('slope', '0.2');
       return this.svg.append('path').datum(topojson.merge(counties, counties.objects.california_counties.geometries.filter(function(d) {
         return d.properties.bay_area;
-      }))).attr('class', 'outline').attr('d', this.path).style('stroke', 'black').style('stroke-width', '2pt').style('stroke-dasharray', '2, 4').style('fill', 'none');
+      }))).attr('class', 'outline').attr('d', this.path).style('stroke', 'black').style('stroke-width', '2pt').style('fill', 'none');
     };
 
     CountyMap.prototype.appendCounties = function(counties) {
@@ -97,22 +105,23 @@
     };
 
     CountyMap.prototype.loadPopulationData = function(year, race) {
-      var _this = this;
-      return d3.csv("data/race_by_county_" + year + ".csv", function(error, csv_data) {
-        var colorWrapper, county, pop, _i, _len;
-        pop = {};
-        for (_i = 0, _len = csv_data.length; _i < _len; _i++) {
-          county = csv_data[_i];
+      var colorWrapper, county, pop, _i, _len, _ref,
+        _this = this;
+      pop = {};
+      _ref = this.raw_data;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        county = _ref[_i];
+        if (county["YEAR"] === year) {
           pop[county["County"]] = county;
         }
-        colorWrapper = function(value, divisor, county) {
-          var v;
-          v = parseInt(value.replace(/\,/g, ""));
-          return _this.colors(v / divisor);
-        };
-        return _this.counties.selectAll('path.fill').transition().style('fill', function(d) {
-          return colorWrapper(pop[d.properties.name][race], _this.path.area(d), d.properties.name);
-        });
+      }
+      colorWrapper = function(value, divisor, county) {
+        var v;
+        v = parseInt(value);
+        return _this.colors(v / divisor);
+      };
+      return this.counties.selectAll('path.fill').transition().style('fill', function(d) {
+        return colorWrapper(pop[d.properties.name][race], _this.path.area(d), d.properties.name);
       });
     };
 
