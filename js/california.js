@@ -51,7 +51,7 @@
       this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
       projection = d3.geo.albers().scale(15000).rotate([122.2500, 0, 0]).center([0, 37.6500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
       this.path = d3.geo.path().projection(projection);
-      this.colors = d3.scale.linear().domain([0, this.max / 2, this.max]).range(['#fff', '#2ECC71', '#3498db']);
+      this.colors = d3.scale.linear().domain([0, this.max, 1000000]).range(['#fff', '#3498db', '#3498db']);
       d3.json('data/cali.json', function(error, counties) {
         _this.appendCounties(counties);
         _this.appendOutline(counties);
@@ -64,9 +64,12 @@
     };
 
     CountyMap.prototype.appendOutline = function(counties) {
-      return this.svg.append('path').datum(topojson.mesh(counties, counties.objects.california_counties, function(a, b) {
+      this.svg.append('path').datum(topojson.mesh(counties, counties.objects.california_counties, function(a, b) {
         return a === b && a.id === b.id;
-      })).attr('class', 'outline').attr('d', this.path).style('stroke', 'black').style('stroke-width', '1pt').style('fill', 'none');
+      })).attr('class', 'outline').attr('d', this.path).style('stroke', 'gray').style('stroke-width', '0.5pt').style('fill', 'none');
+      return this.svg.append('path').datum(topojson.merge(counties, counties.objects.california_counties.geometries.filter(function(d) {
+        return d.properties.bay_area;
+      }))).attr('class', 'outline').attr('d', this.path).style('stroke', 'black').style('stroke-width', '2pt').style('stroke-dasharray', '2, 4').style('fill', 'none');
     };
 
     CountyMap.prototype.appendCounties = function(counties) {

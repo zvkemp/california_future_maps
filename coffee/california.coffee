@@ -47,8 +47,8 @@ class CountyMap
     @path = d3.geo.path()
       .projection(projection)
     @colors = d3.scale.linear()
-      .domain([0, @max/2, @max])
-      .range(['#fff', '#2ECC71', '#3498db'])
+      .domain([0, @max, 1000000])
+      .range(['#fff', '#3498db', '#3498db'])
     d3.json('data/cali.json', (error, counties) =>
       @appendCounties(counties)
       @appendOutline(counties)
@@ -62,8 +62,22 @@ class CountyMap
       .datum(topojson.mesh(counties, counties.objects.california_counties, (a, b) -> a == b and a.id == b.id))
       .attr('class', 'outline')
       .attr('d', @path)
+      .style('stroke', 'gray')
+      .style('stroke-width', '0.5pt')
+      .style('fill', 'none')
+
+    # bay area outline
+    @svg.append('path')
+      .datum(
+        topojson.merge(
+          counties,
+          counties.objects.california_counties.geometries.filter((d) -> d.properties.bay_area)
+        )
+      ).attr('class', 'outline')
+      .attr('d', @path)
       .style('stroke', 'black')
-      .style('stroke-width', '1pt')
+      .style('stroke-width', '2pt')
+      .style('stroke-dasharray', '2, 4')
       .style('fill', 'none')
 
   appendCounties: (counties) =>
