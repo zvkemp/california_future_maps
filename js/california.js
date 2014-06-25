@@ -44,6 +44,7 @@
     CountyMap.prototype.max = 2000;
 
     function CountyMap() {
+      this.appendHoverLayer = __bind(this.appendHoverLayer, this);
       this.appendCounties = __bind(this.appendCounties, this);
       this.zoom = __bind(this.zoom, this);
       var _this = this;
@@ -64,6 +65,7 @@
             _this.raw_data = csv_data;
             _this.appendCounties(counties);
             _this.appendOutline(counties);
+            _this.appendHoverLayer(counties);
             return _this.loadPopulationData("2010", 'Total (All race groups)');
           });
         });
@@ -80,7 +82,7 @@
       })).attr('class', 'outline').attr('d', this.path).style('stroke', 'gray').style('stroke-width', '1pt').style('fill', 'none');
       return this.svg.append('path').datum(topojson.merge(counties, counties.objects.california_counties.geometries.filter(function(d) {
         return d.properties.bay_area;
-      }))).attr('class', 'outline').attr('d', this.path).style('stroke', 'black').style('stroke-width', '3pt').style('stroke-dasharray', '3, 4').style('fill', 'none');
+      }))).attr('class', 'outline').attr('d', this.path).style('stroke', 'black').style('stroke-width', '2pt').style('stroke-dasharray', '3, 4').style('fill', 'none');
     };
 
     CountyMap.prototype.zoom = function(scale) {
@@ -91,15 +93,25 @@
     };
 
     CountyMap.prototype.appendCounties = function(counties) {
-      var _this = this;
       this.counties = this.svg.selectAll('.county').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('g').attr('class', '.county');
-      this.counties.append('path').attr('class', 'fill').datum(function(d) {
+      return this.counties.append('path').attr('class', 'fill').datum(function(d) {
         return d;
       }).attr('d', this.path);
+    };
+
+    CountyMap.prototype.appendHoverLayer = function(counties) {
+      var _this = this;
       this.hoverLayer = this.svg.selectAll('.county_hover').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('g').attr('class', 'tooltip').style('opacity', 0);
       this.hoverLayer.append('path').datum(function(d) {
         return d;
       }).attr('d', this.path).style('stroke', 'black').style('stroke-width', 2).style('fill', 'white').style('fill-opacity', 0);
+      this.hoverLayer.append('text').text(function(d) {
+        return d.properties.name;
+      }).attr('x', function(d) {
+        return _this.path.centroid(d)[0];
+      }).attr('y', function(d) {
+        return _this.path.centroid(d)[1];
+      }).attr('text-anchor', 'middle').style('font-family', 'arial').style('font-weight', 'bold').style('font-size', '8pt').style('stroke', 'white').style('stroke-width', '2pt');
       this.hoverLayer.append('text').text(function(d) {
         return d.properties.name;
       }).attr('x', function(d) {
@@ -111,7 +123,12 @@
         return _this.path.centroid(d)[0];
       }).attr('y', function(d) {
         return _this.path.centroid(d)[1] + 15;
-      }).attr('text-anchor', 'middle').style('font-family', 'arial').style('font-size', '8pt');
+      }).attr('text-anchor', 'middle').style('font-family', 'arial').style('font-size', '8pt').style('stroke', 'white').style('stroke-width', '2pt').style('font-weight', 'bold');
+      this.hoverLayer.append('text').attr('class', 'density').attr('x', function(d) {
+        return _this.path.centroid(d)[0];
+      }).attr('y', function(d) {
+        return _this.path.centroid(d)[1] + 15;
+      }).attr('text-anchor', 'middle').style('font-family', 'arial').style('font-size', '8pt').style('font-weight', 'bold');
       return this.hoverLayer.on('mouseover', function(d) {
         return d3.select(this).style('opacity', 1);
       }).on('mouseout', function() {
