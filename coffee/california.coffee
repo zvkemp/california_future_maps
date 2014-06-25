@@ -1,12 +1,16 @@
 class CountyMapControls
   constructor: (map) ->
     controls = d3.select('body').append('div')
-    years = controls.append('select')
-    years.selectAll('option').data([2010, 2020, 2030, 2040, 2050, 2060])
+    years = controls.append('div')
+    years.selectAll('input').data([2010, 2020, 2030, 2040, 2050, 2060])
       .enter()
-      .append('option')
-      .attr('value', (d) -> d)
+      .append('label')
       .text((d) -> d)
+      .append('input')
+      .attr('type', 'radio')
+      .attr('name', 'year')
+      .attr('value', (d) -> d)
+
     races = controls.append('select')
     races.selectAll('option').data([
       'Total (All race groups)'
@@ -21,7 +25,7 @@ class CountyMapControls
       .append('option')
       .attr('value', (d) -> d)
       .text((d) -> d)
-    selectedYear = -> years.node().value
+    selectedYear = -> years.select('input:checked').node().value
     selectedRace = -> races.node().value
     changeEvent = -> map.loadPopulationData(selectedYear(), selectedRace())
     years.on('change', changeEvent)
@@ -30,32 +34,53 @@ class CountyMapControls
 class CountyMap
   height: 960
   width: 1160
-  max: 200
+  max: 2000
 
   constructor: ->
     @appendControls()
     @svg = d3.select('body').append('svg')
       .attr('width', @width)
       .attr('height', @height)
-    projection = d3.geo.albers()
+    @projection = d3.geo.albers()
       .scale(15000)
       .rotate([122.2500, 0, 0])
       .center([0, 37.3500])
       .parallels([36, 35])
       .translate([@width / 4, @height / 2])
     @path = d3.geo.path()
-      .projection(projection)
+      .projection(@projection)
     @colors = d3.scale.linear()
-      .domain([0, @max, 10000])
-      .range(['#fff', '#3498db', '#3498db'])
+      #.domain([0, @max, 30000])
+      .domain([0, 0.25, 1])
+      .range(['#fff', '#3498DB', '#E74C3C'])
+
+
+
+
+    # d3.select('body')
+    #   .on('keydown', (e) ->
+    #     ({
+    #       "Up" :    -> console.log('up')
+    #       "Down" :  -> console.log('up')
+    #       "Left" :  -> console.log('up')
+    #       "Right" : -> console.log('up')
+    #     }[d3.event.keyIdentifier] ? ->)()
+    #   )
+
     d3.json('data/cali.json', (error, counties) =>
       d3.csv("data/race_by_county.csv", (error, csv_data) =>
-        @raw_data = csv_data
-        @appendCounties(counties)
-        @appendOutline(counties)
-        @loadPopulationData( "2010", 'Total (All race groups)')
+        d3.csv("data/square_miles.csv", (error, area_data) =>
+          @square_miles = {}
+          (@square_miles[county.county] = parseFloat(county.square_miles)) for county in area_data
+          @raw_data = csv_data
+          @appendCounties(counties)
+          @appendOutline(counties)
+          @loadPopulationData( "2010", 'Total (All race groups)')
+
+        )
       )
     )
+
 
 
   appendControls: -> new CountyMapControls @
@@ -66,31 +91,9 @@ class CountyMap
       .attr('class', 'outline')
       .attr('d', @path)
       .style('stroke', 'gray')
-      .style('stroke-width', '0.5pt')
+      .style('stroke-width', '1pt')
       .style('fill', 'none')
-
     # bay area outline
-
-    filter = @svg.append('defs')
-      .append('filter')
-      .attr('id', 'dropshadow')
-    filter.append('feGaussianBlur')
-      .attr('in', 'SourceAlpha')
-      .attr('stdDeviation', 3)
-      .attr('result', 'blur')
-    filter.append('feOffset')
-      .attr('in', 'blur')
-      .attr('dx', 2)
-      .attr('dy', 2)
-      .attr('result', 'offsetBlur')
-    filter.append('feComponentTransfer')
-      .append('feFuncA')
-      .attr('type', 'linear')
-      .attr('slope', '0.2')
-    #merge = filter.append('feMerge')
-    #merge.append('feMergeNode')
-    #merge.append('feMergeNode')
-    #.attr('in', 'SourceGraphic')
     @svg.append('path')
       .datum(
         topojson.merge(
@@ -100,10 +103,15 @@ class CountyMap
       ).attr('class', 'outline')
       .attr('d', @path)
       .style('stroke', 'black')
-      .style('stroke-width', '2pt')
+      .style('stroke-width', '3pt')
+      .style('stroke-dasharray', '3, 4')
       .style('fill', 'none')
-      #.attr('filter', "url(#dropshadow)")
 
+  zoom: (scale) =>
+    @projection.scale(scale)
+    @path.projection(@projection)
+    @counties.selectAll('path').transition().attr('d', @path)
+    @hoverLayer.selectAll('path').transition().attr('d', @path)
 
   appendCounties: (counties) =>
     # This seems a little convuluted, but all is necessary to provide nice, non-overlapping
@@ -135,20 +143,34 @@ class CountyMap
       .style('font-family', 'arial')
       .style('font-weight', 'bold')
       .style('font-size', '8pt')
+    @hoverLayer.append('text')
+      .attr('class', 'density')
+      .attr('x', (d) => @path.centroid(d)[0])
+      .attr('y', (d) => @path.centroid(d)[1] + 15)
+      .attr('text-anchor', 'middle')
+      .style('font-family', 'arial')
+      .style('font-size', '8pt')
     @hoverLayer
       .on('mouseover', (d) -> d3.select(@).style('opacity', 1))
       .on('mouseout', -> d3.select(@).style('opacity', 0))
 
   loadPopulationData: (year, race) ->
-      pop = {}
-      (pop[county["County"]] = county) for county in @raw_data when county["YEAR"] is year
+    pop = {}
+    (pop[county["County"]] = county) for county in @raw_data when county["YEAR"] is year
 
-      colorWrapper = (value, divisor, county) =>
-        v = parseInt(value)
-        @colors(v / divisor)
+    colorWrapper = (value, divisor, county) =>
+      v = parseInt(value)
+      @colors(v / divisor)
 
-      @counties.selectAll('path.fill').transition().style('fill', (d) =>
-        colorWrapper(pop[d.properties.name][race], @path.area(d), d.properties.name)
+    @counties.selectAll('path.fill').transition().style('fill', (d) =>
+      #colorWrapper( pop[d.properties.name][race], @square_miles[d.properties.name], d.properties.name)
+      colorWrapper( pop[d.properties.name][race], pop[d.properties.name]["Total (All race groups)"], d.properties.name)
+    )
+
+    @hoverLayer.selectAll('text.density')
+      .text((d) =>
+        "#{d3.round(100 * parseInt(pop[d.properties.name][race]) / pop[d.properties.name]["Total (All race groups)"],1)}%"
+        #"#{(parseInt(pop[d.properties.name][race]) / @square_miles[d.properties.name]).toFixed(1)} per sq. mile"
       )
 
-new CountyMap
+window.map = new CountyMap
