@@ -20,10 +20,12 @@ class CountyMapControls
       .text(id)
 
     ages = controls.append('select')
-    ages.selectAll('option').data(["all"].concat meta.age_group).enter()
+    age_data = ({ value: g, text: g.replace("..", " to ") } for g in (["all"].concat meta.age_group))
+    ages.selectAll('option').data(age_data)
+      .enter()
       .append('option')
-      .attr('value', id)
-      .text(id)
+      .attr('value', (d) -> d.value)
+      .text((d) -> d.text)
 
     races = controls.append('select')
     races.selectAll('option').data(["all"].concat meta.race).enter()

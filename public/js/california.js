@@ -9,12 +9,29 @@
 
   CountyMapControls = (function() {
     function CountyMapControls(map, meta) {
-      var ages, changeEvent, controls, races, selectedAge, selectedRace, selectedYear, selector, years, zoom, _i, _len, _ref;
+      var age_data, ages, changeEvent, controls, g, races, selectedAge, selectedRace, selectedYear, selector, years, zoom, _i, _len, _ref;
       controls = d3.select('body').append('div');
       years = controls.append('select');
       years.selectAll('option').data(meta.year).enter().append('option').attr('value', id).text(id);
       ages = controls.append('select');
-      ages.selectAll('option').data(["all"].concat(meta.age_group)).enter().append('option').attr('value', id).text(id);
+      age_data = (function() {
+        var _i, _len, _ref, _results;
+        _ref = ["all"].concat(meta.age_group);
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          g = _ref[_i];
+          _results.push({
+            value: g,
+            text: g.replace("..", " to ")
+          });
+        }
+        return _results;
+      })();
+      ages.selectAll('option').data(age_data).enter().append('option').attr('value', function(d) {
+        return d.value;
+      }).text(function(d) {
+        return d.text;
+      });
       races = controls.append('select');
       races.selectAll('option').data(["all"].concat(meta.race)).enter().append('option').attr('value', id).text(id);
       zoom = controls.append('select');
