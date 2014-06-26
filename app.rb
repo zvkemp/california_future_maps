@@ -7,12 +7,19 @@ set :database, { adapter: "sqlite3", database: "cdf_data.sqlite3" }
 class Population < ActiveRecord::Base
   # groups and sums results, combining the given keys and returning an array of hashes
 
+  EXCLUDE_FROM_CONDENSATION = {
+    'county' => ["California"]
+  }
+
   def self.condense(*keys)
     keep_columns = column_names - keys.map(&:to_s) - ['id', 'estimate']
     mask         = -> (row) { Hash[keep_columns.map {|c| [c, row.send(c)] }]}
     puts mask[first].inspect
     Hash.new(0).tap do |result|
-      all.each {|row| result[mask[row]] += row.estimate }
+      all.each do |row| 
+        next if EXCLUDE_FROM_CONDENSATION.any? {|key, exclusions| keys.include?(key) && exclusions.include?(row.send(key)) }
+        result[mask[row]] += row.estimate 
+      end
     end.map do |key, estimate|
       key.merge({ estimate: estimate })
     end
