@@ -65,15 +65,12 @@ class CountyMap
       .range(['#fff', '#3498DB', '#E74C3C'])
 
     d3.json('data/cali.json', (error, counties) =>
-      #d3.csv("data/race_by_county.csv", (error, csv_data) =>
       d3.csv("data/square_miles.csv", (error, area_data) =>
         @square_miles = {}
         (@square_miles[county.county] = parseFloat(county.square_miles)) for county in area_data
-        #@raw_data = csv_data
         @appendCounties(counties)
         @appendOutline(counties)
         @appendHoverLayer(counties)
-        # @loadPopulationData( "2010", 'Total (All race groups)')
         @onLoad()
       )
     )
