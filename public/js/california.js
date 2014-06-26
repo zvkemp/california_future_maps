@@ -71,10 +71,26 @@
           _this.appendCounties(counties);
           _this.appendOutline(counties);
           _this.appendHoverLayer(counties);
+          _this.appendLegend();
           return _this.onLoad();
         });
       });
     }
+
+    CountyMap.prototype.appendLegend = function() {
+      var n;
+      this.legend = this.svg.append('g').attr('id', 'legend').attr('x', 0).attr('y', 0);
+      return this.legend.selectAll('rect').data((function() {
+        var _i, _results;
+        _results = [];
+        for (n = _i = 0; _i <= 1; n = _i += 0.1) {
+          _results.push(n);
+        }
+        return _results;
+      })()).enter().append('rect').attr('x', 0).attr('y', function(d) {
+        return 200 * d;
+      }).attr('width', 20).attr('height', 20).style('stroke', 'black').style('fill', this.colors);
+    };
 
     CountyMap.prototype.appendControls = function(meta) {
       return new CountyMapControls(this, meta);
@@ -97,7 +113,7 @@
     };
 
     CountyMap.prototype.appendCounties = function(counties) {
-      this.counties = this.svg.selectAll('.county').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('g').attr('class', '.county');
+      this.counties = this.svg.selectAll('.county').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('g').attr('class', 'county');
       return this.counties.append('path').attr('class', 'fill').datum(function(d) {
         return d;
       }).attr('d', this.path);
@@ -105,7 +121,7 @@
 
     CountyMap.prototype.appendHoverLayer = function(counties) {
       var _this = this;
-      this.hoverLayer = this.svg.selectAll('.county_hover').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('g').attr('class', 'tooltip').style('opacity', 0);
+      this.hoverLayer = this.svg.selectAll('.county_hover').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('g').attr('class', 'tooltip county_hover').style('opacity', 0);
       this.hoverLayer.append('path').datum(function(d) {
         return d;
       }).attr('d', this.path).style('stroke', 'black').style('stroke-width', 2).style('fill', 'white').style('fill-opacity', 0);

@@ -71,9 +71,22 @@ class CountyMap
         @appendCounties(counties)
         @appendOutline(counties)
         @appendHoverLayer(counties)
+        @appendLegend()
         @onLoad()
       )
     )
+
+  appendLegend: ->
+    @legend = @svg.append('g').attr('id', 'legend').attr('x', 0).attr('y', 0)
+    @legend.selectAll('rect').data(n for n in [0..1] by 0.1)
+      .enter()
+      .append('rect')
+      .attr('x', 0)
+      .attr('y', (d) -> 200 * d)
+      .attr('width', 20)
+      .attr('height', 20)
+      .style('stroke', 'black')
+      .style('fill', @colors)
 
 
 
@@ -113,7 +126,7 @@ class CountyMap
     @counties = @svg.selectAll('.county')
       .data(topojson.feature(counties, counties.objects.california_counties).features)
       .enter().append('g')
-      .attr('class', '.county')
+      .attr('class', 'county')
     @counties.append('path').attr('class', 'fill')
       .datum((d) -> d)
       .attr('d', @path)
@@ -123,7 +136,7 @@ class CountyMap
       .data(topojson.feature(counties, counties.objects.california_counties).features)
       .enter()
       .append('g')
-      .attr('class', 'tooltip')
+      .attr('class', 'tooltip county_hover')
       .style('opacity', 0)
     @hoverLayer.append('path').datum((d) -> d)
       .attr('d', @path)
