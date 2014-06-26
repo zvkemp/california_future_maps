@@ -3,20 +3,18 @@
   var CountyMap, CountyMapControls,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
-  console.log('coffee');
-
   CountyMapControls = (function() {
-    function CountyMapControls(map) {
+    function CountyMapControls(map, meta) {
       var changeEvent, controls, races, selectedRace, selectedYear, years;
       controls = d3.select('body').append('div');
       years = controls.append('div');
-      years.selectAll('input').data([2010, 2020, 2030, 2040, 2050, 2060]).enter().append('label').text(function(d) {
+      years.selectAll('input').data(meta.year).enter().append('label').text(function(d) {
         return d;
       }).append('input').attr('type', 'radio').attr('name', 'year').attr('value', function(d) {
         return d;
       });
       races = controls.append('select');
-      races.selectAll('option').data(['Total (All race groups)', 'White', 'Black', 'American Indian', 'Asian', 'Native Hawaiian and other Pacific Islander', 'Hispanic or Latino', 'Multi-Race']).enter().append('option').attr('value', function(d) {
+      races.selectAll('option').data(meta.race).enter().append('option').attr('value', function(d) {
         return d;
       }).text(function(d) {
         return d;
@@ -45,12 +43,12 @@
 
     CountyMap.prototype.max = 2000;
 
-    function CountyMap() {
+    function CountyMap(meta) {
       this.appendHoverLayer = __bind(this.appendHoverLayer, this);
       this.appendCounties = __bind(this.appendCounties, this);
       this.zoom = __bind(this.zoom, this);
       var _this = this;
-      this.appendControls();
+      this.appendControls(meta);
       this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
       this.projection = d3.geo.albers().scale(15000).rotate([122.2500, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
       this.path = d3.geo.path().projection(this.projection);
@@ -74,8 +72,8 @@
       });
     }
 
-    CountyMap.prototype.appendControls = function() {
-      return new CountyMapControls(this);
+    CountyMap.prototype.appendControls = function(meta) {
+      return new CountyMapControls(this, meta);
     };
 
     CountyMap.prototype.appendOutline = function(counties) {
@@ -166,6 +164,9 @@
 
   })();
 
-  window.map = new CountyMap;
+  d3.json("/meta.json", function(meta) {
+    var map;
+    return map = new CountyMap(meta);
+  });
 
 }).call(this);

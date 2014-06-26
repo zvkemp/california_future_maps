@@ -1,9 +1,8 @@
-console.log('coffee')
 class CountyMapControls
-  constructor: (map) ->
+  constructor: (map, meta) ->
     controls = d3.select('body').append('div')
     years = controls.append('div')
-    years.selectAll('input').data([2010, 2020, 2030, 2040, 2050, 2060])
+    years.selectAll('input').data(meta.year)
       .enter()
       .append('label')
       .text((d) -> d)
@@ -13,19 +12,11 @@ class CountyMapControls
       .attr('value', (d) -> d)
 
     races = controls.append('select')
-    races.selectAll('option').data([
-      'Total (All race groups)'
-      'White'
-      'Black'
-      'American Indian'
-      'Asian'
-      'Native Hawaiian and other Pacific Islander'
-      'Hispanic or Latino'
-      'Multi-Race']
-    ).enter()
+    races.selectAll('option').data(meta.race).enter()
       .append('option')
       .attr('value', (d) -> d)
       .text((d) -> d)
+
     selectedYear = -> years.select('input:checked').node().value
     selectedRace = -> races.node().value
     changeEvent = -> map.loadPopulationData(selectedYear(), selectedRace())
@@ -37,8 +28,8 @@ class CountyMap
   width: 1160
   max: 2000
 
-  constructor: ->
-    @appendControls()
+  constructor: (meta) ->
+    @appendControls(meta)
     @svg = d3.select('body').append('svg')
       .attr('width', @width)
       .attr('height', @height)
@@ -85,7 +76,7 @@ class CountyMap
 
 
 
-  appendControls: -> new CountyMapControls @
+  appendControls: (meta) -> new CountyMapControls @, meta
 
   appendOutline: (counties) ->
     @svg.append('path')
@@ -198,4 +189,6 @@ class CountyMap
         #"#{(parseInt(pop[d.properties.name][race]) / @square_miles[d.properties.name]).toFixed(1)} per sq. mile"
       )
 
-window.map = new CountyMap
+d3.json("/meta.json", (meta) ->
+  map = new CountyMap(meta)
+)
