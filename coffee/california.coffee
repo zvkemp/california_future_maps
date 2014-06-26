@@ -1,3 +1,4 @@
+console.log('coffee')
 class CountyMapControls
   constructor: (map) ->
     controls = d3.select('body').append('div')

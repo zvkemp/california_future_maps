@@ -3,6 +3,8 @@
   var CountyMap, CountyMapControls,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
+  console.log('coffee');
+
   CountyMapControls = (function() {
     function CountyMapControls(map) {
       var changeEvent, controls, races, selectedRace, selectedYear, years;
