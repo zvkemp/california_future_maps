@@ -25,6 +25,13 @@ class Population < ActiveRecord::Base
       key.merge({ estimate: estimate })
     end
   end
+
+  def self.spacify_county_names
+    all.each do |row|
+      row.county = row.county.gsub(/[A-Z]/){ " #{$&}" }.strip
+      row.save
+    end
+  end
 end
 
 METADATA = {
