@@ -65,18 +65,16 @@ class CountyMap
       .range(['#fff', '#3498DB', '#E74C3C'])
 
     d3.json('data/cali.json', (error, counties) =>
-      d3.csv("data/race_by_county.csv", (error, csv_data) =>
-        d3.csv("data/square_miles.csv", (error, area_data) =>
-          @square_miles = {}
-          (@square_miles[county.county] = parseFloat(county.square_miles)) for county in area_data
-          @raw_data = csv_data
-          @appendCounties(counties)
-          @appendOutline(counties)
-          @appendHoverLayer(counties)
-          @loadPopulationData( "2010", 'Total (All race groups)')
-          @onLoad()
-
-        )
+      #d3.csv("data/race_by_county.csv", (error, csv_data) =>
+      d3.csv("data/square_miles.csv", (error, area_data) =>
+        @square_miles = {}
+        (@square_miles[county.county] = parseFloat(county.square_miles)) for county in area_data
+        #@raw_data = csv_data
+        @appendCounties(counties)
+        @appendOutline(counties)
+        @appendHoverLayer(counties)
+        # @loadPopulationData( "2010", 'Total (All race groups)')
+        @onLoad()
       )
     )
 
@@ -176,25 +174,48 @@ class CountyMap
       .on('mouseover', (d) -> d3.select(@).style('opacity', 1))
       .on('mouseout', -> d3.select(@).style('opacity', 0))
 
-  loadPopulationData: (year, race) ->
-    pop = {}
-    (pop[county["County"]] = county) for county in @raw_data when county["YEAR"] is year
+  #loadPopulationData: (year, race) ->
+  #  pop = {}
+  #  (pop[county["County"]] = county) for county in @raw_data when county["YEAR"] is year
 
-    colorWrapper = (value, divisor, county) =>
-      v = parseInt(value)
-      @colors(v / divisor)
+  #  colorWrapper = (value, divisor, county) =>
+  #    v = parseInt(value)
+  #    @colors(v / divisor)
 
-    @counties.selectAll('path.fill').transition().style('fill', (d) =>
-      #colorWrapper( pop[d.properties.name][race], @square_miles[d.properties.name], d.properties.name)
-      colorWrapper( pop[d.properties.name][race], pop[d.properties.name]["Total (All race groups)"], d.properties.name)
+  #  @counties.selectAll('path.fill').transition().style('fill', (d) =>
+  #    #colorWrapper( pop[d.properties.name][race], @square_miles[d.properties.name], d.properties.name)
+  #    colorWrapper( pop[d.properties.name][race], pop[d.properties.name]["Total (All race groups)"], d.properties.name)
+  #  )
+
+  #  @hoverLayer.selectAll('text.density')
+  #    .text((d) =>
+  #      "#{d3.round(100 * parseInt(pop[d.properties.name][race]) / pop[d.properties.name]["Total (All race groups)"],1)}%"
+  #      #"#{(parseInt(pop[d.properties.name][race]) / @square_miles[d.properties.name]).toFixed(1)} per sq. mile"
+  #    )
+  #
+  loadPopulationData: (year, race, age) ->
+    age or= "all"
+    d3.json("/data.json?year=#{year}&race=#{race}&age_group=#{age}&gender=all", (data) =>
+      d3.json("/data.json?year=#{year}&race=all&age_group=#{age}&gender=all", (totals) =>
+        pop = {}
+        (pop[row.county] = row) for row in data
+        (pop[row.county].total = row.estimate) for row in totals
+
+        colorWrapper = (value) =>
+          @colors(percentageOfTotal(value))
+
+        percentageOfTotal = (d) ->
+          p = pop[d.properties.name]
+          p.estimate / p.total
+
+        @counties.selectAll('path.fill').transition().style('fill', (d) =>
+          @colors(percentageOfTotal(d))
+        )
+        @hoverLayer.selectAll('text.density')
+          .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
+      )
     )
 
-    @hoverLayer.selectAll('text.density')
-      .text((d) =>
-        "#{d3.round(100 * parseInt(pop[d.properties.name][race]) / pop[d.properties.name]["Total (All race groups)"],1)}%"
-        #"#{(parseInt(pop[d.properties.name][race]) / @square_miles[d.properties.name]).toFixed(1)} per sq. mile"
-      )
-
 d3.json("/meta.json", (meta) ->
-  map = new CountyMap(meta)
+  window.map = new CountyMap(meta)
 )

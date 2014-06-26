@@ -61,21 +61,17 @@
       this.path = d3.geo.path().projection(this.projection);
       this.colors = d3.scale.linear().domain([0, 0.25, 1]).range(['#fff', '#3498DB', '#E74C3C']);
       d3.json('data/cali.json', function(error, counties) {
-        return d3.csv("data/race_by_county.csv", function(error, csv_data) {
-          return d3.csv("data/square_miles.csv", function(error, area_data) {
-            var county, _i, _len;
-            _this.square_miles = {};
-            for (_i = 0, _len = area_data.length; _i < _len; _i++) {
-              county = area_data[_i];
-              _this.square_miles[county.county] = parseFloat(county.square_miles);
-            }
-            _this.raw_data = csv_data;
-            _this.appendCounties(counties);
-            _this.appendOutline(counties);
-            _this.appendHoverLayer(counties);
-            _this.loadPopulationData("2010", 'Total (All race groups)');
-            return _this.onLoad();
-          });
+        return d3.csv("data/square_miles.csv", function(error, area_data) {
+          var county, _i, _len;
+          _this.square_miles = {};
+          for (_i = 0, _len = area_data.length; _i < _len; _i++) {
+            county = area_data[_i];
+            _this.square_miles[county.county] = parseFloat(county.square_miles);
+          }
+          _this.appendCounties(counties);
+          _this.appendOutline(counties);
+          _this.appendHoverLayer(counties);
+          return _this.onLoad();
         });
       });
     }
@@ -144,27 +140,36 @@
       });
     };
 
-    CountyMap.prototype.loadPopulationData = function(year, race) {
-      var colorWrapper, county, pop, _i, _len, _ref,
-        _this = this;
-      pop = {};
-      _ref = this.raw_data;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        county = _ref[_i];
-        if (county["YEAR"] === year) {
-          pop[county["County"]] = county;
-        }
-      }
-      colorWrapper = function(value, divisor, county) {
-        var v;
-        v = parseInt(value);
-        return _this.colors(v / divisor);
-      };
-      this.counties.selectAll('path.fill').transition().style('fill', function(d) {
-        return colorWrapper(pop[d.properties.name][race], pop[d.properties.name]["Total (All race groups)"], d.properties.name);
-      });
-      return this.hoverLayer.selectAll('text.density').text(function(d) {
-        return "" + (d3.round(100 * parseInt(pop[d.properties.name][race]) / pop[d.properties.name]["Total (All race groups)"], 1)) + "%";
+    CountyMap.prototype.loadPopulationData = function(year, race, age) {
+      var _this = this;
+      age || (age = "all");
+      return d3.json("/data.json?year=" + year + "&race=" + race + "&age_group=" + age + "&gender=all", function(data) {
+        return d3.json("/data.json?year=" + year + "&race=all&age_group=" + age + "&gender=all", function(totals) {
+          var colorWrapper, percentageOfTotal, pop, row, _i, _j, _len, _len1;
+          pop = {};
+          for (_i = 0, _len = data.length; _i < _len; _i++) {
+            row = data[_i];
+            pop[row.county] = row;
+          }
+          for (_j = 0, _len1 = totals.length; _j < _len1; _j++) {
+            row = totals[_j];
+            pop[row.county].total = row.estimate;
+          }
+          colorWrapper = function(value) {
+            return _this.colors(percentageOfTotal(value));
+          };
+          percentageOfTotal = function(d) {
+            var p;
+            p = pop[d.properties.name];
+            return p.estimate / p.total;
+          };
+          _this.counties.selectAll('path.fill').transition().style('fill', function(d) {
+            return _this.colors(percentageOfTotal(d));
+          });
+          return _this.hoverLayer.selectAll('text.density').text(function(d) {
+            return "" + (d3.round(100 * percentageOfTotal(d), 1)) + "%";
+          });
+        });
       });
     };
 
@@ -173,8 +178,7 @@
   })();
 
   d3.json("/meta.json", function(meta) {
-    var map;
-    return map = new CountyMap(meta);
+    return window.map = new CountyMap(meta);
   });
 
 }).call(this);
