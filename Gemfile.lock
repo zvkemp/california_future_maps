@@ -1,0 +1,60 @@
+GIT
+  remote: https://github.com/janko-m/sinatra-activerecord
+  revision: 69f314b0bef6512b33b778dacb8b431aae3f3516
+  specs:
+    sinatra-activerecord (2.0.2)
+      activerecord (>= 3.2)
+      sinatra (~> 1.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activemodel (4.0.3)
+      activesupport (= 4.0.3)
+      builder (~> 3.1.0)
+    activerecord (4.0.3)
+      activemodel (= 4.0.3)
+      activerecord-deprecated_finders (~> 1.0.2)
+      activesupport (= 4.0.3)
+      arel (~> 4.0.0)
+    activerecord-deprecated_finders (1.0.3)
+    activesupport (4.0.3)
+      i18n (~> 0.6, >= 0.6.4)
+      minitest (~> 4.2)
+      multi_json (~> 1.3)
+      thread_safe (~> 0.1)
+      tzinfo (~> 0.3.37)
+    arel (4.0.2)
+    builder (3.1.4)
+    daemons (1.1.9)
+    eventmachine (1.0.3)
+    i18n (0.6.9)
+    minitest (4.7.5)
+    multi_json (1.10.1)
+    rack (1.5.2)
+    rack-protection (1.5.3)
+      rack
+    rake (10.3.2)
+    sinatra (1.4.5)
+      rack (~> 1.4)
+      rack-protection (~> 1.4)
+      tilt (~> 1.3, >= 1.3.4)
+    sqlite3 (1.3.9)
+    thin (1.6.2)
+      daemons (>= 1.0.9)
+      eventmachine (>= 1.0.0)
+      rack (>= 1.0.0)
+    thread_safe (0.3.4)
+    tilt (1.4.1)
+    tzinfo (0.3.39)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  activerecord (= 4.0.3)
+  rake
+  sinatra
+  sinatra-activerecord!
+  sqlite3
+  thin
