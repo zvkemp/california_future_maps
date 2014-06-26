@@ -1,32 +1,50 @@
+id = (d) -> d
+
 class CountyMapControls
   constructor: (map, meta) ->
     controls = d3.select('body').append('div')
-    years = controls.append('div')
-    years.selectAll('input').data(meta.year)
-      .enter()
-      .append('label')
-      .text((d) -> d)
-      .append('input')
-      .attr('type', 'radio')
-      .attr('name', 'year')
-      .attr('value', (d) -> d)
+    #years = controls.append('div')
+    #years.selectAll('input').data(meta.year)
+    #.enter()
+    #.append('label')
+    #.text((d) -> d)
+    #.append('input')
+    #.attr('type', 'radio')
+    #.attr('name', 'year')
+    #.attr('value', (d) -> d)
+
+    years = controls.append('select')
+    years.selectAll('option').data(meta.year).enter()
+      .append('option')
+      .attr('value', id)
+      .text(id)
+
+    ages = controls.append('select')
+    ages.selectAll('option').data(["all"].concat meta.age_group).enter()
+      .append('option')
+      .attr('value', id)
+      .text(id)
 
     races = controls.append('select')
     races.selectAll('option').data(meta.race).enter()
       .append('option')
-      .attr('value', (d) -> d)
-      .text((d) -> d)
+      .attr('value', id)
+      .text(id)
 
-    selectedYear = -> years.select('input:checked').node().value
+    #selectedYear = -> years.select('input:checked').node().value
+    selectedYear = -> years.node().value
     selectedRace = -> races.node().value
-    changeEvent = -> map.loadPopulationData(selectedYear(), selectedRace())
-    years.on('change', changeEvent)
-    races.on('change', changeEvent)
+    selectedAge  = -> ages.node().value
+    changeEvent =  -> map.loadPopulationData(selectedYear(), selectedRace())
+    selector.on('change', changeEvent) for selector in [years, races, ages]
+    map.onLoad = changeEvent
 
 class CountyMap
   height: 960
   width: 1160
   max: 2000
+
+  onLoad: ->
 
   constructor: (meta) ->
     @appendControls(meta)
@@ -46,19 +64,6 @@ class CountyMap
       .domain([0, 0.25, 1])
       .range(['#fff', '#3498DB', '#E74C3C'])
 
-
-
-
-    # d3.select('body')
-    #   .on('keydown', (e) ->
-    #     ({
-    #       "Up" :    -> console.log('up')
-    #       "Down" :  -> console.log('up')
-    #       "Left" :  -> console.log('up')
-    #       "Right" : -> console.log('up')
-    #     }[d3.event.keyIdentifier] ? ->)()
-    #   )
-
     d3.json('data/cali.json', (error, counties) =>
       d3.csv("data/race_by_county.csv", (error, csv_data) =>
         d3.csv("data/square_miles.csv", (error, area_data) =>
@@ -69,6 +74,7 @@ class CountyMap
           @appendOutline(counties)
           @appendHoverLayer(counties)
           @loadPopulationData( "2010", 'Total (All race groups)')
+          @onLoad()
 
         )
       )
