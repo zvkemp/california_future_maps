@@ -28,11 +28,11 @@ class Population < ActiveRecord::Base
 end
 
 METADATA = {
-  :races      => Population.pluck(:race).uniq,
-  :counties   => Population.pluck(:county).uniq,
-  :age_groups => Population.pluck(:age_group).uniq,
-  :years      => Population.pluck(:year).uniq,
-  :genders    => Population.pluck(:gender).uniq
+  :race      => Population.pluck(:race).uniq,
+  :county    => Population.pluck(:county).uniq,
+  :age_group => Population.pluck(:age_group).uniq,
+  :year      => Population.pluck(:year).uniq,
+  :gender    => Population.pluck(:gender).uniq
 }
 
 get '/' do
