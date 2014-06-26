@@ -1,5 +1,10 @@
 require 'sinatra'
-require './data'
+require 'sinatra/activerecord'
+
+set :database, { adapter: "sqlite3", database: "cdf_data.sqlite3" }
+
+class Population < ActiveRecord::Base
+end
 
 get '/' do
   "Hello, World"
