@@ -1,6 +1,7 @@
 require 'sinatra'
 require 'sinatra/activerecord'
 require 'json'
+require 'haml'
 
 set :database, { adapter: "sqlite3", database: "cdf_data.sqlite3" }
 
@@ -35,7 +36,7 @@ METADATA = {
 }
 
 get '/' do
-  "Hello, World"
+  haml :map
 end
 
 # /data.json?county=SanFrancisco&race=all&age_group=all&year=2010
