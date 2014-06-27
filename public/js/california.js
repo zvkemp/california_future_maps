@@ -38,10 +38,10 @@
       zoom.selectAll('option').data([
         {
           text: "Bay Area",
-          value: 15000
+          value: 14000
         }, {
           text: "California",
-          value: 5000
+          value: 4500
         }
       ]).enter().append('option').attr('value', function(d) {
         return d.value;
@@ -76,11 +76,9 @@
   })();
 
   CountyMap = (function() {
-    CountyMap.prototype.height = 960;
+    CountyMap.prototype.height = 800;
 
-    CountyMap.prototype.width = 1160;
-
-    CountyMap.prototype.max = 2000;
+    CountyMap.prototype.width = 1100;
 
     CountyMap.prototype.onLoad = function() {};
 
@@ -92,53 +90,61 @@
       this.appendControls(meta);
       this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
       this.svg.append('rect').attr('width', this.width).attr('height', this.height).style('fill', 'none').style('stroke', 'gray');
-      this.projection = d3.geo.albers().scale(15000).rotate([122.2500, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
+      this.projection = d3.geo.albers().scale(14000).rotate([122.8600, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
       this.path = d3.geo.path().projection(this.projection);
       this.colors = d3.scale.linear().domain([0, 0.25, 1]).range(['#fff', '#3498DB', '#E74C3C']);
       d3.json('data/cali.json', function(error, counties) {
-        return d3.csv("data/square_miles.csv", function(error, area_data) {
-          var county, _i, _len;
-          _this.square_miles = {};
-          for (_i = 0, _len = area_data.length; _i < _len; _i++) {
-            county = area_data[_i];
-            _this.square_miles[county.county] = parseFloat(county.square_miles);
-          }
-          _this.appendCounties(counties);
-          _this.appendOutline(counties);
-          _this.appendHoverLayer(counties);
-          _this.appendLegend();
-          return _this.onLoad();
-        });
+        _this.appendCounties(counties);
+        _this.appendOutline(counties);
+        _this.appendHoverLayer(counties);
+        _this.appendLegend();
+        return _this.onLoad();
       });
     }
 
     CountyMap.prototype.appendLegend = function() {
-      var legendY, n;
-      this.legend = this.svg.append('g').attr('id', 'legend').attr('transform', "translate(50, " + (this.height - 300) + ")").style('stroke', 'gray').style('fill', 'white');
-      this.legend.append('rect').attr('width', 180).attr('height', 240);
-      legendY = function(d) {
-        return 200 * d + 10;
+      var legendData, legendX, n, percent;
+      this.legend = this.svg.append('g').attr('id', 'legend').attr('transform', "translate(30, " + (this.height - 180) + ")");
+      this.legend.append('rect').attr('width', 360).attr('height', 150).style('stroke', 'gray').style('fill', 'white');
+      legendX = function(d) {
+        return 300 * d + 10;
       };
-      this.legend.selectAll('rect').data((function() {
+      legendData = (function() {
         var _i, _results;
         _results = [];
         for (n = _i = 0; _i <= 1; n = _i += 0.1) {
           _results.push(n);
         }
         return _results;
-      })()).enter().append('rect').attr('x', 10).attr('y', legendY).attr('width', 20).attr('height', 20).style('stroke', 'white').style('fill', this.colors);
-      return this.legend.selectAll('text.percentages').data((function() {
-        var _i, _results;
+      })();
+      this.legend.selectAll('rect').data(legendData).enter().append('rect').attr('x', legendX).attr('y', 10).attr('width', 30).attr('height', 30).style('stroke', 'white').style('fill', this.colors);
+      percent = d3.format("%");
+      this.legend.selectAll('text.percentage').data(legendData).enter().append('text').attr('transform', function(d) {
+        return "translate(" + (legendX(d) + 15) + ", 50)";
+      }).text(percent).style('text-anchor', 'middle').style('font-family', 'arial').style('font-size', 10).style('font-weight', 'bold');
+      this.legendText = this.legend.append('text').attr('id', 'legendText').text('').attr('transform', "translate(0, -20)").style('font-family', 'arial').style('font-weight', 'bold').style('font-size', 18);
+      return this.legendSubText = this.legend.append('text').attr('id', 'legendSubText').text('').style('font-family', 'arial').style('font-size', 14);
+    };
+
+    CountyMap.prototype.legendTextContent = function(year, race, age) {
+      var legend, prediction, x;
+      race = (race === "all" ? null : "" + race + " population");
+      age = (age === "all" ? null : "" + (age.replace('..', " to ")) + " year olds");
+      prediction = "" + year + " ESTIMATE";
+      legend = (function() {
+        var _i, _len, _ref, _results;
+        _ref = [race, age];
         _results = [];
-        for (n = _i = 0; _i <= 100; n = _i += 10) {
-          _results.push(n);
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          x = _ref[_i];
+          if (x) {
+            _results.push(x);
+          }
         }
         return _results;
-      })()).enter().append('text').text(function(d) {
-        return "" + d + "%";
-      }).attr('transform', function(d) {
-        return "translate(35, " + (legendY(d / 100) + 15) + ")";
-      }).style('font-family', 'arial').style('font-size', 10).style('font-weight', 'bold').style('fill', 'black').style('stroke', 'none');
+      })();
+      this.legendText.text(legend.join(', '));
+      return this.legendSubText.text("AS A PERCENTAGE OF THE TOTAL, " + prediction);
     };
 
     CountyMap.prototype.appendControls = function(meta) {
@@ -178,7 +184,7 @@
       this.counties = this.svg.selectAll('.county').data(topojson.feature(counties, counties.objects.california_counties).features).enter().append('g').attr('class', 'county');
       return this.counties.append('path').attr('class', 'fill').datum(function(d) {
         return d;
-      }).attr('d', this.path);
+      }).attr('d', this.path).style('fill', 'white');
     };
 
     CountyMap.prototype.appendHoverLayer = function(counties) {
@@ -218,6 +224,12 @@
       });
     };
 
+    CountyMap.prototype.updateWindow = function() {
+      var x, y;
+      x = window.innerWidth;
+      return y = window.innerHeight;
+    };
+
     CountyMap.prototype.loadPopulationData = function(year, race, age) {
       var _this = this;
       age || (age = "all");
@@ -244,9 +256,10 @@
           _this.counties.selectAll('path.fill').transition().style('fill', function(d) {
             return _this.colors(percentageOfTotal(d));
           });
-          return _this.hoverLayer.selectAll('text.value').text(function(d) {
+          _this.hoverLayer.selectAll('text.value').text(function(d) {
             return "" + (d3.round(100 * percentageOfTotal(d), 1)) + "%";
           });
+          return _this.legendTextContent(year, race, age);
         });
       });
     };

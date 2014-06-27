@@ -34,7 +34,7 @@ class CountyMapControls
       .text(id)
 
     zoom = controls.append('select')
-    zoom.selectAll('option').data([{ text: "Bay Area", value: 15000 }, { text: "California", value: 5000 }]).enter()
+    zoom.selectAll('option').data([{ text: "Bay Area", value: 14000 }, { text: "California", value: 4500 }]).enter()
       .append('option')
       .attr('value', (d) -> d.value)
       .text((d) -> d.text)
@@ -50,9 +50,8 @@ class CountyMapControls
     map.onLoad = changeEvent
 
 class CountyMap
-  height: 960
-  width: 1160
-  max: 2000
+  height: 800
+  width: 1100
 
   onLoad: ->
 
@@ -66,61 +65,103 @@ class CountyMap
       .style('fill', 'none')
       .style('stroke', 'gray')
     @projection = d3.geo.albers()
-      .scale(15000)
-      .rotate([122.2500, 0, 0])
+      .scale(14000)
+      .rotate([122.8600, 0, 0])
       .center([0, 37.3500])
       .parallels([36, 35])
       .translate([@width / 4, @height / 2])
     @path = d3.geo.path()
       .projection(@projection)
     @colors = d3.scale.linear()
-      #.domain([0, @max, 30000])
       .domain([0, 0.25, 1])
       .range(['#fff', '#3498DB', '#E74C3C'])
 
     d3.json('data/cali.json', (error, counties) =>
-      d3.csv("data/square_miles.csv", (error, area_data) =>
-        @square_miles = {}
-        (@square_miles[county.county] = parseFloat(county.square_miles)) for county in area_data
-        @appendCounties(counties)
-        @appendOutline(counties)
-        @appendHoverLayer(counties)
-        @appendLegend()
-        @onLoad()
-      )
+      @appendCounties(counties)
+      @appendOutline(counties)
+      @appendHoverLayer(counties)
+      @appendLegend()
+      @onLoad()
     )
 
+  #appendLegend: ->
+  #  @legend = @svg.append('g').attr('id', 'legend')
+  #    .attr('transform', "translate(50, #{@height - 300})")
+  #    .style('stroke', 'gray')
+  #    .style('fill', 'white')
+  #  @legend.append('rect')
+  #    .attr('width', 140)
+  #    .attr('height', 240)
+
+  #  legendY = (d) -> 200 * d + 10
+
+  #  @legend.selectAll('rect').data(n for n in [0..1] by 0.1)
+  #    .enter()
+  #    .append('rect')
+  #    .attr('x', 10)
+  #    .attr('y', legendY)
+  #    .attr('width', 20)
+  #    .attr('height', 20)
+  #    .style('stroke', 'white')
+  #    .style('fill', @colors)
+
+  #  @legend.selectAll('text.percentages').data(n for n in [0..100] by 10)
+  #    .enter()
+  #    .append('text')
+  #    .text((d) -> "#{d}%")
+  #    .attr('transform', (d) -> "translate(35, #{legendY(d/100) + 15})")
+  #    .style('font-family', 'arial')
+  #    .style('font-size', 10)
+  #    .style('font-weight', 'bold')
+  #    .style('fill', 'black')
+  #    .style('stroke', 'none')
+  #
   appendLegend: ->
     @legend = @svg.append('g').attr('id', 'legend')
-      .attr('transform', "translate(50, #{@height - 300})")
+      .attr('transform', "translate(30, #{@height - 180})")
+    @legend.append('rect')
+      .attr('width', 360)
+      .attr('height', 150)
       .style('stroke', 'gray')
       .style('fill', 'white')
-    @legend.append('rect')
-      .attr('width', 180)
-      .attr('height', 240)
-
-    legendY = (d) -> 200 * d + 10
-
-    @legend.selectAll('rect').data(n for n in [0..1] by 0.1)
+    legendX = (d) -> 300 * d + 10
+    legendData = (n for n in [0..1] by 0.1)
+    @legend.selectAll('rect').data(legendData)
       .enter()
       .append('rect')
-      .attr('x', 10)
-      .attr('y', legendY)
-      .attr('width', 20)
-      .attr('height', 20)
+      .attr('x', legendX)
+      .attr('y', 10)
+      .attr('width', 30).attr('height', 30)
       .style('stroke', 'white')
       .style('fill', @colors)
-
-    @legend.selectAll('text.percentages').data(n for n in [0..100] by 10)
+    percent = d3.format("%")
+    @legend.selectAll('text.percentage').data(legendData)
       .enter()
       .append('text')
-      .text((d) -> "#{d}%")
-      .attr('transform', (d) -> "translate(35, #{legendY(d/100) + 15})")
+      .attr('transform', (d) -> "translate(#{legendX(d) + 15}, 50)")
+      .text(percent)
+      .style('text-anchor', 'middle')
       .style('font-family', 'arial')
       .style('font-size', 10)
       .style('font-weight', 'bold')
-      .style('fill', 'black')
-      .style('stroke', 'none')
+    @legendText = @legend.append('text').attr('id', 'legendText')
+      .text('')
+      .attr('transform', "translate(0, -20)")
+      .style('font-family', 'arial')
+      .style('font-weight', 'bold')
+      .style('font-size', 18)
+    @legendSubText = @legend.append('text').attr('id', 'legendSubText')
+      .text('')
+      .style('font-family', 'arial')
+      .style('font-size', 14)
+
+  legendTextContent: (year, race, age) ->
+    race       = (if race is "all" then null else "#{race} population")
+    age        = (if age is "all" then null else "#{age.replace('..', " to ")} year olds")
+    prediction = "#{year} ESTIMATE"
+    legend     = (x for x in [race, age] when x)
+    @legendText.text(legend.join(', '))
+    @legendSubText.text("AS A PERCENTAGE OF THE TOTAL, #{prediction}")
 
 
 
@@ -172,6 +213,7 @@ class CountyMap
     @counties.append('path').attr('class', 'fill')
       .datum((d) -> d)
       .attr('d', @path)
+      .style('fill', 'white')
 
   appendHoverLayer: (counties) =>
     @hoverLayer = @svg.selectAll('.county_hover')
@@ -228,25 +270,10 @@ class CountyMap
       .on('mouseover', (d) -> d3.select(@).style('opacity', 1))
       .on('mouseout', -> d3.select(@).style('opacity', 0))
 
-  #loadPopulationData: (year, race) ->
-  #  pop = {}
-  #  (pop[county["County"]] = county) for county in @raw_data when county["YEAR"] is year
+  updateWindow: ->
+    x = window.innerWidth
+    y = window.innerHeight
 
-  #  colorWrapper = (value, divisor, county) =>
-  #    v = parseInt(value)
-  #    @colors(v / divisor)
-
-  #  @counties.selectAll('path.fill').transition().style('fill', (d) =>
-  #    #colorWrapper( pop[d.properties.name][race], @square_miles[d.properties.name], d.properties.name)
-  #    colorWrapper( pop[d.properties.name][race], pop[d.properties.name]["Total (All race groups)"], d.properties.name)
-  #  )
-
-  #  @hoverLayer.selectAll('text.density')
-  #    .text((d) =>
-  #      "#{d3.round(100 * parseInt(pop[d.properties.name][race]) / pop[d.properties.name]["Total (All race groups)"],1)}%"
-  #      #"#{(parseInt(pop[d.properties.name][race]) / @square_miles[d.properties.name]).toFixed(1)} per sq. mile"
-  #    )
-  #
   loadPopulationData: (year, race, age) ->
     age or= "all"
     d3.json("/data.json?year=#{year}&race=#{race}&age_group=#{age}&gender=all", (data) =>
@@ -267,6 +294,7 @@ class CountyMap
         )
         @hoverLayer.selectAll('text.value')
           .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
+        @legendTextContent(year, race, age)
       )
     )
 
