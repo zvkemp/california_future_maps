@@ -3,15 +3,6 @@ id = (d) -> d
 class CountyMapControls
   constructor: (map, meta) ->
     controls = d3.select('body').append('div')
-    #years = controls.append('div')
-    #years.selectAll('input').data(meta.year)
-    #.enter()
-    #.append('label')
-    #.text((d) -> d)
-    #.append('input')
-    #.attr('type', 'radio')
-    #.attr('name', 'year')
-    #.attr('value', (d) -> d)
 
     years = controls.append('select')
     years.selectAll('option').data(meta.year).enter()
@@ -20,7 +11,7 @@ class CountyMapControls
       .text(id)
 
     ages = controls.append('select')
-    age_data = ({ value: g, text: g.replace("..", " to ") } for g in (["all"].concat meta.age_group))
+    age_data = [{ value: "all", text: "all age groups" }].concat({ value: g, text: "#{g.replace("..", " to ")} year olds" } for g in meta.age_group)
     ages.selectAll('option').data(age_data)
       .enter()
       .append('option')
@@ -45,7 +36,7 @@ class CountyMapControls
     selectedYear = -> years.node().value
     selectedRace = -> races.node().value
     selectedAge  = -> ages.node().value
-    changeEvent =  -> map.loadPopulationData(selectedYear(), selectedRace(), selectedAge())
+    changeEvent  = -> map.loadPopulationData(selectedYear(), selectedRace(), selectedAge())
     selector.on('change', changeEvent) for selector in [years, races, ages]
     map.onLoad = changeEvent
 
@@ -62,7 +53,7 @@ class CountyMap
       .attr('height', @height)
     @svg.append('rect').attr('width', @width)
       .attr('height', @height)
-      .style('fill', 'none')
+      .style('fill', '#f9f9f9')
       .style('stroke', 'gray')
     @projection = d3.geo.albers()
       .scale(14000)
@@ -75,55 +66,59 @@ class CountyMap
     @colors = d3.scale.linear()
       .domain([0, 0.25, 1])
       .range(['#fff', '#3498DB', '#E74C3C'])
+    @_meta = meta
 
     d3.json('data/cali.json', (error, counties) =>
       @appendCounties(counties)
       @appendOutline(counties)
       @appendHoverLayer(counties)
       @appendLegend()
+      @appendLiveLegend()
       @onLoad()
     )
 
-  #appendLegend: ->
-  #  @legend = @svg.append('g').attr('id', 'legend')
-  #    .attr('transform', "translate(50, #{@height - 300})")
-  #    .style('stroke', 'gray')
-  #    .style('fill', 'white')
-  #  @legend.append('rect')
-  #    .attr('width', 140)
-  #    .attr('height', 240)
+  appendLiveLegend: ->
+    @_legendWrapper = @svg.append('foreignObject').attr('x', 30).attr('y', @height - 150).attr('width', 360).attr('height', 200)
+    @liveLegend = @_legendWrapper.append('xhtml:div')
 
-  #  legendY = (d) -> 200 * d + 10
+    large_text = @liveLegend.append('p').attr('class', 'large')
+    small_text = @liveLegend.append('p').attr('class', 'small')
+    small_text.append('span').text('AS A PERCENTAGE OF THE TOTAL,')
+    years = small_text.append('select').attr('class', 'small')
+    years.selectAll('option').data(@_meta.year).enter()
+      .append('option')
+      .attr('value', id)
+      .text(id)
+    small_text.append('span').text('ESTIMATE')
 
-  #  @legend.selectAll('rect').data(n for n in [0..1] by 0.1)
-  #    .enter()
-  #    .append('rect')
-  #    .attr('x', 10)
-  #    .attr('y', legendY)
-  #    .attr('width', 20)
-  #    .attr('height', 20)
-  #    .style('stroke', 'white')
-  #    .style('fill', @colors)
+    races = large_text.append('select').attr('class', 'large')
+    race_data = [{ value: "all", text: "all ethnicities" }].concat({ value: g, text: g} for g in @_meta.race)
+    races.selectAll('option').data(race_data).enter()
+      .append('option')
+      .attr('value', (d) -> d.value)
+      .text((d) -> d.text)
+    large_text.append('span').text(",")
 
-  #  @legend.selectAll('text.percentages').data(n for n in [0..100] by 10)
-  #    .enter()
-  #    .append('text')
-  #    .text((d) -> "#{d}%")
-  #    .attr('transform', (d) -> "translate(35, #{legendY(d/100) + 15})")
-  #    .style('font-family', 'arial')
-  #    .style('font-size', 10)
-  #    .style('font-weight', 'bold')
-  #    .style('fill', 'black')
-  #    .style('stroke', 'none')
-  #
+    ages = large_text.append('select').attr('class', 'large')
+    age_data = [{ value: "all", text: "all age groups" }].concat({ value: g, text: "#{g.replace("..", " to ")} year olds" } for g in @_meta.age_group)
+    ages.selectAll('option').data(age_data)
+      .enter()
+      .append('option')
+      .attr('value', (d) -> d.value)
+      .text((d) -> d.text)
+
+    #selectedYear = -> years.select('input:checked').node().value
+    selectedYear = -> years.node().value
+    selectedRace = -> races.node().value
+    selectedAge  = -> ages.node().value
+    changeEvent  = -> map.loadPopulationData(selectedYear(), selectedRace(), selectedAge())
+    selector.on('change', changeEvent) for selector in [years, races, ages]
+    map.onLoad = changeEvent
+
+
   appendLegend: ->
     @legend = @svg.append('g').attr('id', 'legend')
-      .attr('transform', "translate(30, #{@height - 180})")
-    @legend.append('rect')
-      .attr('width', 360)
-      .attr('height', 150)
-      .style('stroke', 'gray')
-      .style('fill', 'white')
+      .attr('transform', "translate(30, #{@height - 100})")
     legendX = (d) -> 300 * d + 10
     legendData = (n for n in [0..1] by 0.1)
     @legend.selectAll('rect').data(legendData)
@@ -141,27 +136,24 @@ class CountyMap
       .attr('transform', (d) -> "translate(#{legendX(d) + 15}, 50)")
       .text(percent)
       .style('text-anchor', 'middle')
-      .style('font-family', 'arial')
       .style('font-size', 10)
       .style('font-weight', 'bold')
-    @legendText = @legend.append('text').attr('id', 'legendText')
-      .text('')
-      .attr('transform', "translate(0, -20)")
-      .style('font-family', 'arial')
-      .style('font-weight', 'bold')
-      .style('font-size', 18)
-    @legendSubText = @legend.append('text').attr('id', 'legendSubText')
-      .text('')
-      .style('font-family', 'arial')
-      .style('font-size', 14)
+    #@legendText = @legend.append('text').attr('id', 'legendText')
+    #.text('')
+    #.attr('transform', "translate(0, -20)")
+    #.style('font-weight', 'bold')
+    #.style('font-size', 18)
+    #@legendSubText = @legend.append('text').attr('id', 'legendSubText')
+    #.text('')
+    #.style('font-size', 14)
 
-  legendTextContent: (year, race, age) ->
-    race       = (if race is "all" then null else "#{race} population")
-    age        = (if age is "all" then null else "#{age.replace('..', " to ")} year olds")
-    prediction = "#{year} ESTIMATE"
-    legend     = (x for x in [race, age] when x)
-    @legendText.text(legend.join(', '))
-    @legendSubText.text("AS A PERCENTAGE OF THE TOTAL, #{prediction}")
+  #legendTextContent: (year, race, age) ->
+  #race       = (if race is "all" then null else "#{race} population")
+  #age        = (if age is "all" then null else "#{age.replace('..', " to ")} year olds")
+  #prediction = "#{year} ESTIMATE"
+  #legend     = (x for x in [race, age] when x)
+  #@legendText.text(legend.join(', '))
+  #@legendSubText.text("AS A PERCENTAGE OF THE TOTAL, #{prediction}")
 
 
 
@@ -234,7 +226,6 @@ class CountyMap
       .attr('y', (d) => @path.centroid(d)[1])
       .attr('text-anchor', 'middle')
       .attr('class', 'name')
-      .style('font-family', 'arial')
       .style('font-weight', 'bold')
       .style('font-size', '8pt')
       .style('stroke', 'white')
@@ -245,7 +236,6 @@ class CountyMap
       .attr('x', (d) => @path.centroid(d)[0])
       .attr('y', (d) => @path.centroid(d)[1])
       .attr('text-anchor', 'middle')
-      .style('font-family', 'arial')
       .style('font-weight', 'bold')
       .style('font-size', '8pt')
     @hoverLayer.append('text')
@@ -253,7 +243,6 @@ class CountyMap
       .attr('x', (d) => @path.centroid(d)[0])
       .attr('y', (d) => @path.centroid(d)[1] + 15)
       .attr('text-anchor', 'middle')
-      .style('font-family', 'arial')
       .style('font-size', '8pt')
       .style('stroke', 'white')
       .style('stroke-width', '2pt')
@@ -263,7 +252,6 @@ class CountyMap
       .attr('x', (d) => @path.centroid(d)[0])
       .attr('y', (d) => @path.centroid(d)[1] + 15)
       .attr('text-anchor', 'middle')
-      .style('font-family', 'arial')
       .style('font-size', '8pt')
       .style('font-weight', 'bold')
     @hoverLayer
@@ -294,7 +282,7 @@ class CountyMap
         )
         @hoverLayer.selectAll('text.value')
           .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
-        @legendTextContent(year, race, age)
+        #@legendTextContent(year, race, age)
       )
     )
 

@@ -14,19 +14,24 @@
       years = controls.append('select');
       years.selectAll('option').data(meta.year).enter().append('option').attr('value', id).text(id);
       ages = controls.append('select');
-      age_data = (function() {
+      age_data = [
+        {
+          value: "all",
+          text: "all age groups"
+        }
+      ].concat((function() {
         var _i, _len, _ref, _results;
-        _ref = ["all"].concat(meta.age_group);
+        _ref = meta.age_group;
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           g = _ref[_i];
           _results.push({
             value: g,
-            text: g.replace("..", " to ")
+            text: "" + (g.replace("..", " to ")) + " year olds"
           });
         }
         return _results;
-      })();
+      })());
       ages.selectAll('option').data(age_data).enter().append('option').attr('value', function(d) {
         return d.value;
       }).text(function(d) {
@@ -89,23 +94,103 @@
       var _this = this;
       this.appendControls(meta);
       this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
-      this.svg.append('rect').attr('width', this.width).attr('height', this.height).style('fill', 'none').style('stroke', 'gray');
+      this.svg.append('rect').attr('width', this.width).attr('height', this.height).style('fill', '#f9f9f9').style('stroke', 'gray');
       this.projection = d3.geo.albers().scale(14000).rotate([122.8600, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
       this.path = d3.geo.path().projection(this.projection);
       this.colors = d3.scale.linear().domain([0, 0.25, 1]).range(['#fff', '#3498DB', '#E74C3C']);
+      this._meta = meta;
       d3.json('data/cali.json', function(error, counties) {
         _this.appendCounties(counties);
         _this.appendOutline(counties);
         _this.appendHoverLayer(counties);
         _this.appendLegend();
+        _this.appendLiveLegend();
         return _this.onLoad();
       });
     }
 
+    CountyMap.prototype.appendLiveLegend = function() {
+      var age_data, ages, changeEvent, g, large_text, race_data, races, selectedAge, selectedRace, selectedYear, selector, small_text, years, _i, _len, _ref;
+      this._legendWrapper = this.svg.append('foreignObject').attr('x', 30).attr('y', this.height - 150).attr('width', 360).attr('height', 200);
+      this.liveLegend = this._legendWrapper.append('xhtml:div');
+      large_text = this.liveLegend.append('p').attr('class', 'large');
+      small_text = this.liveLegend.append('p').attr('class', 'small');
+      small_text.append('span').text('AS A PERCENTAGE OF THE TOTAL,');
+      years = small_text.append('select').attr('class', 'small');
+      years.selectAll('option').data(this._meta.year).enter().append('option').attr('value', id).text(id);
+      small_text.append('span').text('ESTIMATE');
+      races = large_text.append('select').attr('class', 'large');
+      race_data = [
+        {
+          value: "all",
+          text: "all ethnicities"
+        }
+      ].concat((function() {
+        var _i, _len, _ref, _results;
+        _ref = this._meta.race;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          g = _ref[_i];
+          _results.push({
+            value: g,
+            text: g
+          });
+        }
+        return _results;
+      }).call(this));
+      races.selectAll('option').data(race_data).enter().append('option').attr('value', function(d) {
+        return d.value;
+      }).text(function(d) {
+        return d.text;
+      });
+      large_text.append('span').text(",");
+      ages = large_text.append('select').attr('class', 'large');
+      age_data = [
+        {
+          value: "all",
+          text: "all age groups"
+        }
+      ].concat((function() {
+        var _i, _len, _ref, _results;
+        _ref = this._meta.age_group;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          g = _ref[_i];
+          _results.push({
+            value: g,
+            text: "" + (g.replace("..", " to ")) + " year olds"
+          });
+        }
+        return _results;
+      }).call(this));
+      ages.selectAll('option').data(age_data).enter().append('option').attr('value', function(d) {
+        return d.value;
+      }).text(function(d) {
+        return d.text;
+      });
+      selectedYear = function() {
+        return years.node().value;
+      };
+      selectedRace = function() {
+        return races.node().value;
+      };
+      selectedAge = function() {
+        return ages.node().value;
+      };
+      changeEvent = function() {
+        return map.loadPopulationData(selectedYear(), selectedRace(), selectedAge());
+      };
+      _ref = [years, races, ages];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        selector = _ref[_i];
+        selector.on('change', changeEvent);
+      }
+      return map.onLoad = changeEvent;
+    };
+
     CountyMap.prototype.appendLegend = function() {
       var legendData, legendX, n, percent;
-      this.legend = this.svg.append('g').attr('id', 'legend').attr('transform', "translate(30, " + (this.height - 180) + ")");
-      this.legend.append('rect').attr('width', 360).attr('height', 150).style('stroke', 'gray').style('fill', 'white');
+      this.legend = this.svg.append('g').attr('id', 'legend').attr('transform', "translate(30, " + (this.height - 100) + ")");
       legendX = function(d) {
         return 300 * d + 10;
       };
@@ -119,32 +204,9 @@
       })();
       this.legend.selectAll('rect').data(legendData).enter().append('rect').attr('x', legendX).attr('y', 10).attr('width', 30).attr('height', 30).style('stroke', 'white').style('fill', this.colors);
       percent = d3.format("%");
-      this.legend.selectAll('text.percentage').data(legendData).enter().append('text').attr('transform', function(d) {
+      return this.legend.selectAll('text.percentage').data(legendData).enter().append('text').attr('transform', function(d) {
         return "translate(" + (legendX(d) + 15) + ", 50)";
-      }).text(percent).style('text-anchor', 'middle').style('font-family', 'arial').style('font-size', 10).style('font-weight', 'bold');
-      this.legendText = this.legend.append('text').attr('id', 'legendText').text('').attr('transform', "translate(0, -20)").style('font-family', 'arial').style('font-weight', 'bold').style('font-size', 18);
-      return this.legendSubText = this.legend.append('text').attr('id', 'legendSubText').text('').style('font-family', 'arial').style('font-size', 14);
-    };
-
-    CountyMap.prototype.legendTextContent = function(year, race, age) {
-      var legend, prediction, x;
-      race = (race === "all" ? null : "" + race + " population");
-      age = (age === "all" ? null : "" + (age.replace('..', " to ")) + " year olds");
-      prediction = "" + year + " ESTIMATE";
-      legend = (function() {
-        var _i, _len, _ref, _results;
-        _ref = [race, age];
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          x = _ref[_i];
-          if (x) {
-            _results.push(x);
-          }
-        }
-        return _results;
-      })();
-      this.legendText.text(legend.join(', '));
-      return this.legendSubText.text("AS A PERCENTAGE OF THE TOTAL, " + prediction);
+      }).text(percent).style('text-anchor', 'middle').style('font-size', 10).style('font-weight', 'bold');
     };
 
     CountyMap.prototype.appendControls = function(meta) {
@@ -199,24 +261,24 @@
         return _this.path.centroid(d)[0];
       }).attr('y', function(d) {
         return _this.path.centroid(d)[1];
-      }).attr('text-anchor', 'middle').attr('class', 'name').style('font-family', 'arial').style('font-weight', 'bold').style('font-size', '8pt').style('stroke', 'white').style('stroke-width', '2pt');
+      }).attr('text-anchor', 'middle').attr('class', 'name').style('font-weight', 'bold').style('font-size', '8pt').style('stroke', 'white').style('stroke-width', '2pt');
       this.hoverLayer.append('text').text(function(d) {
         return d.properties.name;
       }).attr('class', 'name').attr('x', function(d) {
         return _this.path.centroid(d)[0];
       }).attr('y', function(d) {
         return _this.path.centroid(d)[1];
-      }).attr('text-anchor', 'middle').style('font-family', 'arial').style('font-weight', 'bold').style('font-size', '8pt');
+      }).attr('text-anchor', 'middle').style('font-weight', 'bold').style('font-size', '8pt');
       this.hoverLayer.append('text').attr('class', 'value').attr('x', function(d) {
         return _this.path.centroid(d)[0];
       }).attr('y', function(d) {
         return _this.path.centroid(d)[1] + 15;
-      }).attr('text-anchor', 'middle').style('font-family', 'arial').style('font-size', '8pt').style('stroke', 'white').style('stroke-width', '2pt').style('font-weight', 'bold');
+      }).attr('text-anchor', 'middle').style('font-size', '8pt').style('stroke', 'white').style('stroke-width', '2pt').style('font-weight', 'bold');
       this.hoverLayer.append('text').attr('class', 'value').attr('x', function(d) {
         return _this.path.centroid(d)[0];
       }).attr('y', function(d) {
         return _this.path.centroid(d)[1] + 15;
-      }).attr('text-anchor', 'middle').style('font-family', 'arial').style('font-size', '8pt').style('font-weight', 'bold');
+      }).attr('text-anchor', 'middle').style('font-size', '8pt').style('font-weight', 'bold');
       return this.hoverLayer.on('mouseover', function(d) {
         return d3.select(this).style('opacity', 1);
       }).on('mouseout', function() {
@@ -256,10 +318,9 @@
           _this.counties.selectAll('path.fill').transition().style('fill', function(d) {
             return _this.colors(percentageOfTotal(d));
           });
-          _this.hoverLayer.selectAll('text.value').text(function(d) {
+          return _this.hoverLayer.selectAll('text.value').text(function(d) {
             return "" + (d3.round(100 * percentageOfTotal(d), 1)) + "%";
           });
-          return _this.legendTextContent(year, race, age);
         });
       });
     };
