@@ -1,9 +1,13 @@
-require 'sinatra'
+require 'sinatra/base'
 require 'sinatra/activerecord'
 require 'json'
 require 'haml'
 
-set :database, { adapter: "sqlite3", database: "cdf_data.sqlite3" }
+class CaliMaps < Sinatra::Base
+  register Sinatra::ActiveRecordExtension
+  set :database, { adapter: "sqlite3", database: "cdf_data.sqlite3" }
+end
+
 
 class Population < ActiveRecord::Base
   # groups and sums results, combining the given keys and returning an array of hashes
@@ -34,37 +38,41 @@ class Population < ActiveRecord::Base
   end
 end
 
-METADATA = {
-  :race      => Population.pluck(:race).uniq,
-  :county    => Population.pluck(:county).uniq,
-  :age_group => Population.pluck(:age_group).uniq,
-  :year      => Population.pluck(:year).uniq,
-  :gender    => Population.pluck(:gender).uniq
-}
+class CaliMaps < Sinatra::Base
+  METADATA = {
+    :race      => Population.pluck(:race).uniq,
+    :county    => Population.pluck(:county).uniq,
+    :age_group => Population.pluck(:age_group).uniq,
+    :year      => Population.pluck(:year).uniq,
+    :gender    => Population.pluck(:gender).uniq
+  }
 
-get '/' do
-  haml :map
-end
-
-# /data.json?county=SanFrancisco&race=all&age_group=all&year=2010
-get '/data.json' do
-  content_type :json
-
-  query_params = {}
-  condense_keys = []
-
-  params.each do |key, value|
-    if value == "all"
-      condense_keys << key
-    else
-      query_params[key] = value
-    end
+  get '/' do
+    haml :map
   end
 
-  Population.where(query_params).condense(*condense_keys).to_json
-end
+  # /data.json?county=SanFrancisco&race=all&age_group=all&year=2010
+  get '/data.json' do
+    content_type :json
 
-get '/meta.json' do
-  content_type :json
-  METADATA.to_json
+    query_params = {}
+    condense_keys = []
+
+    params.each do |key, value|
+      if value == "all"
+        condense_keys << key
+      else
+        query_params[key] = value
+      end
+    end
+
+    Population.where(query_params).condense(*condense_keys).to_json
+  end
+
+  get '/meta.json' do
+    content_type :json
+    METADATA.to_json
+  end
+
+  run! if app_file == $0
 end

@@ -28,6 +28,8 @@ GEM
     builder (3.1.4)
     daemons (1.1.9)
     eventmachine (1.0.3)
+    haml (4.0.0)
+      tilt
     i18n (0.6.9)
     minitest (4.7.5)
     multi_json (1.10.1)
@@ -53,6 +55,7 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord (= 4.0.3)
+  haml
   rake
   sinatra
   sinatra-activerecord!
