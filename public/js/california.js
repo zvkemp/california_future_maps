@@ -109,8 +109,46 @@
       });
     }
 
+    CountyMap.prototype.animateOnce = function() {
+      var animate, intId, years,
+        _this = this;
+      years = this._meta.year.concat([]);
+      intId = null;
+      animate = function() {
+        var year;
+        if (years.length === 0) {
+          clearInterval(intId);
+          return;
+        }
+        year = years.shift();
+        _this.years.select("option[value=\"" + year + "\"]").attr('selected', 'selected');
+        return _this.changeEvent();
+      };
+      return intId = setInterval(animate, 500);
+    };
+
+    CountyMap.prototype.animate = function() {
+      var animate, index, years, ylength,
+        _this = this;
+      years = this._meta.year;
+      ylength = years.length;
+      index = 0;
+      animate = function() {
+        var year;
+        year = years[index % years.length];
+        index++;
+        _this.years.select("option[value=\"" + year + "\"]").attr('selected', 'selected');
+        return _this.changeEvent();
+      };
+      return this.repId = setInterval(animate, 500);
+    };
+
+    CountyMap.prototype.stopAnimation = function() {
+      return clearInterval(this.repId);
+    };
+
     CountyMap.prototype.appendLiveLegend = function() {
-      var age_data, ages, changeEvent, g, large_text, race_data, races, selectedAge, selectedRace, selectedYear, selector, small_text, years, _i, _len, _ref;
+      var age_data, ages, g, large_text, race_data, races, selectedAge, selectedRace, selectedYear, selector, small_text, years, _i, _len, _ref;
       this._legendWrapper = this.svg.append('foreignObject').attr('x', 40).attr('y', this.height - 150).attr('width', 360).attr('height', 200);
       this.liveLegend = this._legendWrapper.append('xhtml:div');
       large_text = this.liveLegend.append('p').attr('class', 'large');
@@ -118,6 +156,7 @@
       small_text.append('span').text('AS A PERCENTAGE OF THE TOTAL,');
       years = small_text.append('select').attr('class', 'small');
       years.selectAll('option').data(this._meta.year).enter().append('option').attr('value', id).text(id);
+      this.years = years;
       small_text.append('span').text('ESTIMATE');
       races = large_text.append('select').attr('class', 'large');
       race_data = [
@@ -169,16 +208,16 @@
       selectedAge = function() {
         return ages.node().value;
       };
-      changeEvent = function() {
+      this.changeEvent = function() {
         return map.loadPopulationData(selectedYear(), selectedRace(), selectedAge());
       };
       _ref = [years, races, ages];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         selector = _ref[_i];
-        selector.on('change', changeEvent);
+        selector.on('change', this.changeEvent);
       }
       ages.select('option[value="18..44"]').attr('selected', 'selected');
-      return map.onLoad = changeEvent;
+      return map.onLoad = this.changeEvent;
     };
 
     CountyMap.prototype.appendZoomControls = function() {

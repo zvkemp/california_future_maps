@@ -80,6 +80,33 @@ class CountyMap
       @onLoad()
     )
 
+  animateOnce: ->
+    years = @_meta.year.concat([])
+    intId = null
+    animate = =>
+      if years.length is 0
+        clearInterval(intId)
+        return
+      year = years.shift()
+      @years.select("option[value=\"#{year}\"]").attr('selected', 'selected')
+      @changeEvent()
+    intId = setInterval(animate, 500)
+
+  animate: ->
+    years = @_meta.year
+    ylength = years.length
+    index = 0
+    animate = =>
+      year = years[index % years.length]
+      index++
+      @years.select("option[value=\"#{year}\"]").attr('selected', 'selected')
+      @changeEvent()
+    @repId = setInterval(animate, 500)
+
+  stopAnimation: -> clearInterval(@repId)
+
+
+
   appendLiveLegend: ->
     @_legendWrapper = @svg.append('foreignObject').attr('x', 40).attr('y', @height - 150).attr('width', 360).attr('height', 200)
     @liveLegend = @_legendWrapper.append('xhtml:div')
@@ -92,6 +119,7 @@ class CountyMap
       .append('option')
       .attr('value', id)
       .text(id)
+    @years = years
     small_text.append('span').text('ESTIMATE')
 
     races = large_text.append('select').attr('class', 'large')
@@ -113,12 +141,12 @@ class CountyMap
     selectedYear = -> years.node().value
     selectedRace = -> races.node().value
     selectedAge  = -> ages.node().value
-    changeEvent  = -> map.loadPopulationData(selectedYear(), selectedRace(), selectedAge())
-    selector.on('change', changeEvent) for selector in [years, races, ages]
+    @changeEvent  = -> map.loadPopulationData(selectedYear(), selectedRace(), selectedAge())
+    selector.on('change', @changeEvent) for selector in [years, races, ages]
 
     # look at 18..44 year olds by default
     ages.select('option[value="18..44"]').attr('selected', 'selected')
-    map.onLoad = changeEvent
+    map.onLoad = @changeEvent
 
   appendZoomControls: ->
     @_zoomControlWrapper = @svg.append('foreignObject')
