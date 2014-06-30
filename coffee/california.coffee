@@ -94,6 +94,7 @@ class CountyMap
 
   animate: ->
     years = @_meta.year
+    #years = [2010, 2060]
     ylength = years.length
     index = 0
     animate = =>
@@ -101,9 +102,11 @@ class CountyMap
       index++
       @years.select("option[value=\"#{year}\"]").attr('selected', 'selected')
       @changeEvent()
-    @repId = setInterval(animate, 500)
+    @repId = setInterval(animate, 250)
 
-  stopAnimation: -> clearInterval(@repId)
+  stopAnimation: -> 
+    clearInterval(@repId)
+    @repId = null
 
   appendLiveLegend: ->
     @_legendWrapper = @svg.append('foreignObject').attr('x', 40).attr('y', @height - 150).attr('width', 360).attr('height', 200)
@@ -161,7 +164,9 @@ class CountyMap
       .append('option')
       .attr('value', value)
       .text(text)
-    zoom.on('change', -> map.zoom(zoom.node().value))
+    zoom.on('change', -> 
+      map.zoom(zoom.node().value)
+    )
 
   appendLegend: ->
     @legend = @svg.append('g').attr('id', 'legend')
@@ -190,13 +195,13 @@ class CountyMap
   appendControls: (meta) -> new CountyMapControls @, meta
 
   appendOutline: (counties) ->
-    @outline = @svg.append('path')
-      .datum(topojson.mesh(counties, counties.objects.california_counties, (a, b) -> a == b and a.id == b.id))
-      .attr('class', 'outline')
-      .attr('d', @path)
-      .style('stroke', 'gray')
-      .style('stroke-width', '1pt')
-      .style('fill', 'none')
+    # @outline = @svg.append('path')
+    #   .datum(topojson.mesh(counties, counties.objects.california_counties, (a, b) -> a == b and a.id == b.id))
+    #   .attr('class', 'outline')
+    #   .attr('d', @path)
+    #   .style('stroke', 'gray')
+    #   .style('stroke-width', '1pt')
+    #   .style('fill', 'none')
     # bay area outline
     @bay_area = @svg.append('path')
       .datum(
@@ -212,18 +217,19 @@ class CountyMap
       .style('fill', 'none')
 
   zoom: (scale) =>
+    @stopAnimation() if @repId
     @projection.scale(scale)
     @path.projection(@projection)
-    @counties.selectAll('path').transition().attr('d', @path)
-    @hoverLayer.selectAll('path').transition().attr('d', @path)
+    @counties.selectAll('path').transition().duration(1000).attr('d', @path)
+    @hoverLayer.selectAll('path').attr('d', @path)
     @hoverLayer.selectAll('text.name')
       .attr('x', (d) => @path.centroid(d)[0])
       .attr('y', (d) => @path.centroid(d)[1])
     @hoverLayer.selectAll('text.value')
       .attr('x', (d) => @path.centroid(d)[0])
       .attr('y', (d) => @path.centroid(d)[1] + 15)
-    @outline.transition().attr('d', @path)
-    @bay_area.transition().attr('d', @path)
+    #@outline.transition().attr('d', @path)
+    @bay_area.transition().duration(1000).attr('d', @path)
 
   appendCounties: (counties) =>
     # This seems a little convuluted, but all is necessary to provide nice, non-overlapping

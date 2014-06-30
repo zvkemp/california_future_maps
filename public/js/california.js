@@ -140,11 +140,12 @@
         _this.years.select("option[value=\"" + year + "\"]").attr('selected', 'selected');
         return _this.changeEvent();
       };
-      return this.repId = setInterval(animate, 500);
+      return this.repId = setInterval(animate, 250);
     };
 
     CountyMap.prototype.stopAnimation = function() {
-      return clearInterval(this.repId);
+      clearInterval(this.repId);
+      return this.repId = null;
     };
 
     CountyMap.prototype.appendLiveLegend = function() {
@@ -266,9 +267,6 @@
     };
 
     CountyMap.prototype.appendOutline = function(counties) {
-      this.outline = this.svg.append('path').datum(topojson.mesh(counties, counties.objects.california_counties, function(a, b) {
-        return a === b && a.id === b.id;
-      })).attr('class', 'outline').attr('d', this.path).style('stroke', 'gray').style('stroke-width', '1pt').style('fill', 'none');
       return this.bay_area = this.svg.append('path').datum(topojson.merge(counties, counties.objects.california_counties.geometries.filter(function(d) {
         return d.properties.bay_area;
       }))).attr('class', 'outline').attr('d', this.path).style('stroke', 'black').style('stroke-width', '2pt').style('stroke-dasharray', '3, 4').style('fill', 'none');
@@ -276,10 +274,13 @@
 
     CountyMap.prototype.zoom = function(scale) {
       var _this = this;
+      if (this.repId) {
+        this.stopAnimation();
+      }
       this.projection.scale(scale);
       this.path.projection(this.projection);
-      this.counties.selectAll('path').transition().attr('d', this.path);
-      this.hoverLayer.selectAll('path').transition().attr('d', this.path);
+      this.counties.selectAll('path').transition().duration(1000).attr('d', this.path);
+      this.hoverLayer.selectAll('path').attr('d', this.path);
       this.hoverLayer.selectAll('text.name').attr('x', function(d) {
         return _this.path.centroid(d)[0];
       }).attr('y', function(d) {
@@ -290,8 +291,7 @@
       }).attr('y', function(d) {
         return _this.path.centroid(d)[1] + 15;
       });
-      this.outline.transition().attr('d', this.path);
-      return this.bay_area.transition().attr('d', this.path);
+      return this.bay_area.transition().duration(1000).attr('d', this.path);
     };
 
     CountyMap.prototype.appendCounties = function(counties) {
