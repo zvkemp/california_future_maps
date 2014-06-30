@@ -1,4 +1,6 @@
 id = (d) -> d
+value = (d) -> d.value
+text = (d) -> d.text
 
 class CountyMapControls
   constructor: (map, meta) ->
@@ -15,8 +17,8 @@ class CountyMapControls
     ages.selectAll('option').data(age_data)
       .enter()
       .append('option')
-      .attr('value', (d) -> d.value)
-      .text((d) -> d.text)
+      .attr('value', value)
+      .text(text)
 
     races = controls.append('select')
     races.selectAll('option').data(["all"].concat meta.race).enter()
@@ -27,8 +29,8 @@ class CountyMapControls
     zoom = controls.append('select')
     zoom.selectAll('option').data([{ text: "Bay Area", value: 14000 }, { text: "California", value: 4500 }]).enter()
       .append('option')
-      .attr('value', (d) -> d.value)
-      .text((d) -> d.text)
+      .attr('value', value)
+      .text(text)
 
     zoom.on('change', -> map.zoom(zoom.node().value))
 
@@ -74,6 +76,7 @@ class CountyMap
       @appendHoverLayer(counties)
       @appendLegend()
       @appendLiveLegend()
+      @appendZoomControls()
       @onLoad()
     )
 
@@ -95,8 +98,8 @@ class CountyMap
     race_data = [{ value: "all", text: "All Ethnicities" }].concat({ value: g, text: g} for g in @_meta.race)
     races.selectAll('option').data(race_data).enter()
       .append('option')
-      .attr('value', (d) -> d.value)
-      .text((d) -> d.text)
+      .attr('value', value)
+      .text(text)
     large_text.append('span').text(",")
 
     ages = large_text.append('select').attr('class', 'large')
@@ -104,8 +107,8 @@ class CountyMap
     ages.selectAll('option').data(age_data)
       .enter()
       .append('option')
-      .attr('value', (d) -> d.value)
-      .text((d) -> d.text)
+      .attr('value', value)
+      .text(text)
 
     selectedYear = -> years.node().value
     selectedRace = -> races.node().value
@@ -117,6 +120,22 @@ class CountyMap
     ages.select('option[value="18..44"]').attr('selected', 'selected')
     map.onLoad = changeEvent
 
+  appendZoomControls: ->
+    @_zoomControlWrapper = @svg.append('foreignObject')
+      .attr('x', 40)
+      .attr('y', @height - 40)
+      .attr('width', 330)
+      .attr('height', 200)
+    zoomControl = @_zoomControlWrapper.append('xhtml:div')
+      .style('font-size', '10pt')
+    zoomControl.append('span').text('ZOOM TO:')
+    zoom = zoomControl.append('select').attr('class', 'small')
+    zoom.selectAll('option').data([{ text: "Bay Area", value: 14000 }, { text: "California", value: 4500 }])
+      .enter()
+      .append('option')
+      .attr('value', value)
+      .text(text)
+    zoom.on('change', -> map.zoom(zoom.node().value))
 
   appendLegend: ->
     @legend = @svg.append('g').attr('id', 'legend')
