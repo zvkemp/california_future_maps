@@ -17,7 +17,7 @@
       age_data = [
         {
           value: "all",
-          text: "all age groups"
+          text: "all Age groups"
         }
       ].concat((function() {
         var _i, _len, _ref, _results;
@@ -92,7 +92,6 @@
       this.appendCounties = __bind(this.appendCounties, this);
       this.zoom = __bind(this.zoom, this);
       var _this = this;
-      this.appendControls(meta);
       this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
       this.svg.append('rect').attr('width', this.width).attr('height', this.height).style('fill', '#f9f9f9').style('stroke', 'gray');
       this.projection = d3.geo.albers().scale(14000).rotate([122.8600, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
@@ -111,7 +110,7 @@
 
     CountyMap.prototype.appendLiveLegend = function() {
       var age_data, ages, changeEvent, g, large_text, race_data, races, selectedAge, selectedRace, selectedYear, selector, small_text, years, _i, _len, _ref;
-      this._legendWrapper = this.svg.append('foreignObject').attr('x', 30).attr('y', this.height - 150).attr('width', 360).attr('height', 200);
+      this._legendWrapper = this.svg.append('foreignObject').attr('x', 40).attr('y', this.height - 150).attr('width', 360).attr('height', 200);
       this.liveLegend = this._legendWrapper.append('xhtml:div');
       large_text = this.liveLegend.append('p').attr('class', 'large');
       small_text = this.liveLegend.append('p').attr('class', 'small');
@@ -123,7 +122,7 @@
       race_data = [
         {
           value: "all",
-          text: "all ethnicities"
+          text: "All Ethnicities"
         }
       ].concat((function() {
         var _i, _len, _ref, _results;
@@ -148,7 +147,7 @@
       age_data = [
         {
           value: "all",
-          text: "all age groups"
+          text: "All Age Groups"
         }
       ].concat((function() {
         var _i, _len, _ref, _results;
@@ -185,6 +184,7 @@
         selector = _ref[_i];
         selector.on('change', changeEvent);
       }
+      ages.select('option[value="18..44"]').attr('selected', 'selected');
       return map.onLoad = changeEvent;
     };
 

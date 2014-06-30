@@ -11,7 +11,7 @@ class CountyMapControls
       .text(id)
 
     ages = controls.append('select')
-    age_data = [{ value: "all", text: "all age groups" }].concat({ value: g, text: "#{g.replace("..", " to ")} year olds" } for g in meta.age_group)
+    age_data = [{ value: "all", text: "all Age groups" }].concat({ value: g, text: "#{g.replace("..", " to ")} year olds" } for g in meta.age_group)
     ages.selectAll('option').data(age_data)
       .enter()
       .append('option')
@@ -47,7 +47,7 @@ class CountyMap
   onLoad: ->
 
   constructor: (meta) ->
-    @appendControls(meta)
+    #@appendControls(meta)
     @svg = d3.select('body').append('svg')
       .attr('width', @width)
       .attr('height', @height)
@@ -78,7 +78,7 @@ class CountyMap
     )
 
   appendLiveLegend: ->
-    @_legendWrapper = @svg.append('foreignObject').attr('x', 30).attr('y', @height - 150).attr('width', 360).attr('height', 200)
+    @_legendWrapper = @svg.append('foreignObject').attr('x', 40).attr('y', @height - 150).attr('width', 360).attr('height', 200)
     @liveLegend = @_legendWrapper.append('xhtml:div')
 
     large_text = @liveLegend.append('p').attr('class', 'large')
@@ -92,7 +92,7 @@ class CountyMap
     small_text.append('span').text('ESTIMATE')
 
     races = large_text.append('select').attr('class', 'large')
-    race_data = [{ value: "all", text: "all ethnicities" }].concat({ value: g, text: g} for g in @_meta.race)
+    race_data = [{ value: "all", text: "All Ethnicities" }].concat({ value: g, text: g} for g in @_meta.race)
     races.selectAll('option').data(race_data).enter()
       .append('option')
       .attr('value', (d) -> d.value)
@@ -100,19 +100,21 @@ class CountyMap
     large_text.append('span').text(",")
 
     ages = large_text.append('select').attr('class', 'large')
-    age_data = [{ value: "all", text: "all age groups" }].concat({ value: g, text: "#{g.replace("..", " to ")} year olds" } for g in @_meta.age_group)
+    age_data = [{ value: "all", text: "All Age Groups" }].concat({ value: g, text: "#{g.replace("..", " to ")} year olds" } for g in @_meta.age_group)
     ages.selectAll('option').data(age_data)
       .enter()
       .append('option')
       .attr('value', (d) -> d.value)
       .text((d) -> d.text)
 
-    #selectedYear = -> years.select('input:checked').node().value
     selectedYear = -> years.node().value
     selectedRace = -> races.node().value
     selectedAge  = -> ages.node().value
     changeEvent  = -> map.loadPopulationData(selectedYear(), selectedRace(), selectedAge())
     selector.on('change', changeEvent) for selector in [years, races, ages]
+
+    # look at 18..44 year olds by default
+    ages.select('option[value="18..44"]').attr('selected', 'selected')
     map.onLoad = changeEvent
 
 
@@ -138,23 +140,6 @@ class CountyMap
       .style('text-anchor', 'middle')
       .style('font-size', 10)
       .style('font-weight', 'bold')
-    #@legendText = @legend.append('text').attr('id', 'legendText')
-    #.text('')
-    #.attr('transform', "translate(0, -20)")
-    #.style('font-weight', 'bold')
-    #.style('font-size', 18)
-    #@legendSubText = @legend.append('text').attr('id', 'legendSubText')
-    #.text('')
-    #.style('font-size', 14)
-
-  #legendTextContent: (year, race, age) ->
-  #race       = (if race is "all" then null else "#{race} population")
-  #age        = (if age is "all" then null else "#{age.replace('..', " to ")} year olds")
-  #prediction = "#{year} ESTIMATE"
-  #legend     = (x for x in [race, age] when x)
-  #@legendText.text(legend.join(', '))
-  #@legendSubText.text("AS A PERCENTAGE OF THE TOTAL, #{prediction}")
-
 
 
   appendControls: (meta) -> new CountyMapControls @, meta
