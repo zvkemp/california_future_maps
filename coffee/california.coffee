@@ -105,8 +105,6 @@ class CountyMap
 
   stopAnimation: -> clearInterval(@repId)
 
-
-
   appendLiveLegend: ->
     @_legendWrapper = @svg.append('foreignObject').attr('x', 40).attr('y', @height - 150).attr('width', 360).attr('height', 200)
     @liveLegend = @_legendWrapper.append('xhtml:div')
@@ -296,27 +294,60 @@ class CountyMap
 
   loadPopulationData: (year, race, age) ->
     age or= "all"
-    d3.json("/data.json?year=#{year}&race=#{race}&age_group=#{age}&gender=all", (data) =>
-      d3.json("/data.json?year=#{year}&race=all&age_group=all&gender=all", (totals) =>
-        pop = {}
-        (pop[row.county] = row) for row in data
-        (pop[row.county].total = row.estimate) for row in totals
+    @_requestData(year, race, age, (data) =>
+      @_requestData(year, "all", "all", (totals) =>
 
-        colorWrapper = (value) =>
-          @colors(percentageOfTotal(value))
+         pop = {}
+         (pop[row.county] = row) for row in data
+         (pop[row.county].total = row.estimate) for row in totals
 
-        percentageOfTotal = (d) ->
-          p = pop[d.properties.name]
-          p.estimate / p.total
+         colorWrapper = (value) =>
+           @colors(percentageOfTotal(value))
 
-        @counties.selectAll('path.fill').transition().style('fill', (d) =>
-          @colors(percentageOfTotal(d))
-        )
-        @hoverLayer.selectAll('text.value')
-          .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
-        #@legendTextContent(year, race, age)
+         percentageOfTotal = (d) ->
+           p = pop[d.properties.name]
+           p.estimate / p.total
+
+         @counties.selectAll('path.fill').transition().style('fill', (d) =>
+           @colors(percentageOfTotal(d))
+         )
+         @hoverLayer.selectAll('text.value')
+           .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
+         #@legendTextContent(year, race, age)
       )
     )
+    # d3.json("/data.json?year=#{year}&race=#{race}&age_group=#{age}&gender=all", (data) =>
+    #   d3.json("/data.json?year=#{year}&race=all&age_group=all&gender=all", (totals) =>
+    #     pop = {}
+    #     (pop[row.county] = row) for row in data
+    #     (pop[row.county].total = row.estimate) for row in totals
+
+    #     colorWrapper = (value) =>
+    #       @colors(percentageOfTotal(value))
+
+    #     percentageOfTotal = (d) ->
+    #       p = pop[d.properties.name]
+    #       p.estimate / p.total
+
+    #     @counties.selectAll('path.fill').transition().style('fill', (d) =>
+    #       @colors(percentageOfTotal(d))
+    #     )
+    #     @hoverLayer.selectAll('text.value')
+    #       .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
+    #     #@legendTextContent(year, race, age)
+    #   )
+    # )
+
+  _requestData: (year, race, age, callback) ->
+    @_cache or= {}
+    if (data = @_cache[[year, race, age]])
+      callback(data)
+    else
+      d3.json("/data.json?year=#{year}&race=#{race}&age_group=#{age}&gender=all", (data) =>
+        @_cache[[year, race, age]] = data
+        callback(data)
+      )
+
 
 d3.json("/meta.json", (meta) ->
   window.map = new CountyMap(meta)

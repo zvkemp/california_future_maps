@@ -347,8 +347,8 @@
     CountyMap.prototype.loadPopulationData = function(year, race, age) {
       var _this = this;
       age || (age = "all");
-      return d3.json("/data.json?year=" + year + "&race=" + race + "&age_group=" + age + "&gender=all", function(data) {
-        return d3.json("/data.json?year=" + year + "&race=all&age_group=all&gender=all", function(totals) {
+      return this._requestData(year, race, age, function(data) {
+        return _this._requestData(year, "all", "all", function(totals) {
           var colorWrapper, percentageOfTotal, pop, row, _i, _j, _len, _len1;
           pop = {};
           for (_i = 0, _len = data.length; _i < _len; _i++) {
@@ -375,6 +375,20 @@
           });
         });
       });
+    };
+
+    CountyMap.prototype._requestData = function(year, race, age, callback) {
+      var data,
+        _this = this;
+      this._cache || (this._cache = {});
+      if ((data = this._cache[[year, race, age]])) {
+        return callback(data);
+      } else {
+        return d3.json("/data.json?year=" + year + "&race=" + race + "&age_group=" + age + "&gender=all", function(data) {
+          _this._cache[[year, race, age]] = data;
+          return callback(data);
+        });
+      }
     };
 
     return CountyMap;
