@@ -360,8 +360,18 @@ class window.CountyMap
     )
 
   _load_by_income: (year, race, age) =>
-    d3.csv('income.csv', (data) -> console.log(data))
-    console.log("load_by_income")
+    d3.csv('income.csv', (data) =>
+      pop              = {}
+      (pop[row.county] = row) for row in data
+      medianIncome     = (d) -> pop[d.properties.name].median_income
+      format           = d3.format("0,000")
+
+      @colors.domain([0].concat(d3.extent(data.map((d) -> d.median_income))))
+      @counties.selectAll('path.fill').transition().style('fill', (d) => @colors(medianIncome(d)))
+      @hoverLayer.selectAll('text.value')
+        .text((d) -> "$#{format(medianIncome(d))}")
+
+    )
 
   loadPopulationData: (year, race, age) =>
     age or= "all"

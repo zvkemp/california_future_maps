@@ -439,10 +439,28 @@
     };
 
     CountyMap.prototype._load_by_income = function(year, race, age) {
-      d3.csv('income.csv', function(data) {
-        return console.log(data);
+      var _this = this;
+      return d3.csv('income.csv', function(data) {
+        var format, medianIncome, pop, row, _i, _len;
+        pop = {};
+        for (_i = 0, _len = data.length; _i < _len; _i++) {
+          row = data[_i];
+          pop[row.county] = row;
+        }
+        medianIncome = function(d) {
+          return pop[d.properties.name].median_income;
+        };
+        format = d3.format("0,000");
+        _this.colors.domain([0].concat(d3.extent(data.map(function(d) {
+          return d.median_income;
+        }))));
+        _this.counties.selectAll('path.fill').transition().style('fill', function(d) {
+          return _this.colors(medianIncome(d));
+        });
+        return _this.hoverLayer.selectAll('text.value').text(function(d) {
+          return "$" + (format(medianIncome(d)));
+        });
       });
-      return console.log("load_by_income");
     };
 
     CountyMap.prototype.loadPopulationData = function(year, race, age) {
