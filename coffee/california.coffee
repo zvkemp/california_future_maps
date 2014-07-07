@@ -73,8 +73,8 @@ class window.CountyMap
       @appendCounties(counties)
       @appendOutline(counties)
       @appendHoverLayer(counties)
-      @appendLegend()
-      @appendLiveLegend()
+      @["appendLegend_#{@_mode}"]()
+      @["appendLiveLegend_#{@_mode}"]()
       @appendZoomControls()
       @onLoad()
     )
@@ -87,8 +87,8 @@ class window.CountyMap
       .domain([0, 0.25, 1])
       .range(['#fff', '#3498DB', '#E74C3C'])
     income: d3.scale.linear()
-      .domain([0, 50, 100])
-      .range(['white', 'yellow', 'red'])
+      .domain([0, 30000, 50000, 100000])
+      .range(['white', 'white', '#f1c40f', '#e74c3c'])
   }
 
   animateOnce: ->
@@ -119,7 +119,9 @@ class window.CountyMap
     clearInterval(@repId)
     @repId = null
 
-  appendLiveLegend: ->
+  appendLiveLegend_income: -> @loadPopulationData()
+
+  appendLiveLegend_percent_population: ->
     @_legendWrapper = @svg.append('foreignObject').attr('x', 40).attr('y', @height - 150).attr('width', 360).attr('height', 200)
     @liveLegend = @_legendWrapper.append('xhtml:div')
 
@@ -160,6 +162,39 @@ class window.CountyMap
     ages.select('option[value="18..44"]').attr('selected', 'selected')
     map.onLoad = @changeEvent
 
+  appendLiveLegend_percent_change: ->
+    @_legendWrapper = @svg.append('foreignObject').attr('x', 40).attr('y', @height - 150).attr('width', 360).attr('height', 200)
+    @liveLegend = @_legendWrapper.append('xhtml:div')
+
+    large_text = @liveLegend.append('p').attr('class', 'large')
+    small_text = @liveLegend.append('p').attr('class', 'small')
+    small_text.append('span').text('2010-2060 CHANGE IN PERCENTAGE OF THE TOTAL')
+
+    races = large_text.append('select').attr('class', 'large')
+    race_data = [{ value: "all", text: "All Ethnicities" }].concat({ value: g, text: g} for g in @_meta.race)
+    races.selectAll('option').data(race_data).enter()
+      .append('option')
+      .attr('value', value)
+      .text(text)
+    large_text.append('span').text(",")
+
+    ages = large_text.append('select').attr('class', 'large')
+    age_data = [{ value: "all", text: "All Age Groups" }].concat({ value: g, text: "#{g.replace("..", " to ")} year olds" } for g in @_meta.age_group)
+    ages.selectAll('option').data(age_data)
+      .enter()
+      .append('option')
+      .attr('value', value)
+      .text(text)
+
+    selectedRace = -> races.node().value
+    selectedAge  = -> ages.node().value
+    @changeEvent  = -> map.loadPopulationData(2010, selectedRace(), selectedAge())
+    selector.on('change', @changeEvent) for selector in [races, ages]
+
+    # look at 18..44 year olds by default
+    ages.select('option[value="18..44"]').attr('selected', 'selected')
+    map.onLoad = @changeEvent
+
   appendZoomControls: ->
     @_zoomControlWrapper = @svg.append('foreignObject')
       .attr('x', 40)
@@ -179,7 +214,65 @@ class window.CountyMap
       map.zoom(zoom.node().value)
     )
 
-  appendLegend: ->
+  appendLegend_percent_change: ->
+    @legend = @svg.append('g').attr('id', 'legend')
+      .attr('transform', "translate(30, #{@height - 100})")
+    legendX = (d) -> 600 * d + 160
+    legendData = (n for n in [-0.25..0.25] by 0.05)
+    #legendData = [-0.25, -0.2, -0.15, -0.1, -0.05, 0, 0.05, 0.10, 0.15, 0.2, 0.25]
+    #legendData = ["-25-", "-20", "-15", "-10", "-5", "0", "5", "10", "15", "20", "25+"]
+    @legend.selectAll('rect').data(legendData)
+      .enter()
+      .append('rect')
+      .attr('x', legendX)
+      .attr('y', 10)
+      .attr('width', 30).attr('height', 30)
+      .style('stroke', 'white')
+      .style('fill', @colors)
+    percent = d3.format("%")
+    @legend.selectAll('text.percentage').data(legendData)
+      .enter()
+      .append('text')
+      .attr('transform', (d) -> "translate(#{legendX(d) + 15}, 50)")
+      .text(percent)
+      .style('text-anchor', 'middle')
+      .style('font-size', 10)
+      .style('font-weight', 'bold')
+
+
+  appendLegend_income: ->
+    @legend = @svg.append('g').attr('id', 'legend')
+      .attr('transform', "translate(30, #{@height - 100})")
+    legendX = (d) -> 30 * d / 10000 - 90
+    legendData = (n for n in [30000..100000] by 10000)
+    @legend.selectAll('rect').data(legendData)
+      .enter()
+      .append('rect')
+      .attr('x', legendX)
+      .attr('y', 10)
+      .attr('width', 30)
+      .attr('height', 30)
+      .style('stroke', 'white')
+      .style('fill', @colors)
+    format = d3.format("0,000")
+    @legend.selectAll('text.income').data(legendData)
+      .enter()
+      .append('text')
+      .attr('transform', (d) -> "translate(#{legendX(d) + 15}, 50)")
+      .text((d) -> "#{d/1000}K")
+      .style('text-anchor', 'middle')
+      .style('font-size', 10)
+      .style('font-weight', 'bold')
+    large_text = @legend.append('text').text("Median Household Income").attr('class', 'large')
+      .attr('transform', "translate(0, -35)")
+    small_text = @legend.append('text').text('IN US DOLLARS').attr('class', 'small')
+      .attr('transform', "translate(0, -20)")
+    source = @legend.append('text').text('SOURCE: American Community Survey, 2012 5-Year Estimates')
+      .style('font-size', '8pt')
+
+
+
+  appendLegend_percent_population: ->
     @legend = @svg.append('g').attr('id', 'legend')
       .attr('transform', "translate(30, #{@height - 100})")
     legendX = (d) -> 300 * d + 10
@@ -366,7 +459,7 @@ class window.CountyMap
       medianIncome     = (d) -> pop[d.properties.name].median_income
       format           = d3.format("0,000")
 
-      @colors.domain([0].concat(d3.extent(data.map((d) -> d.median_income))))
+      #@colors.domain([0].concat(d3.extent(data.map((d) -> d.median_income))))
       @counties.selectAll('path.fill').transition().style('fill', (d) => @colors(medianIncome(d)))
       @hoverLayer.selectAll('text.value')
         .text((d) -> "$#{format(medianIncome(d))}")
