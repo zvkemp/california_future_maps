@@ -86,6 +86,9 @@ class window.CountyMap
     percent_population: d3.scale.linear()
       .domain([0, 0.25, 1])
       .range(['#fff', '#3498DB', '#E74C3C'])
+    income: d3.scale.linear()
+      .domain([0, 50, 100])
+      .range(['white', 'yellow', 'red'])
   }
 
   animateOnce: ->
@@ -355,6 +358,10 @@ class window.CountyMap
         )
       )
     )
+
+  _load_by_income: (year, race, age) =>
+    d3.csv('income.csv', (data) -> console.log(data))
+    console.log("load_by_income")
 
   loadPopulationData: (year, race, age) =>
     age or= "all"

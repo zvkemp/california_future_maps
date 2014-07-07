@@ -55,6 +55,10 @@ class CaliMaps < Sinatra::Base
     haml :percent_change
   end
 
+  get '/income' do
+    haml :income
+  end
+
   # /data.json?county=SanFrancisco&race=all&age_group=all&year=2010
   get '/data.json' do
     content_type :json

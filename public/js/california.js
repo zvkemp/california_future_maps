@@ -95,6 +95,7 @@
         };
       }
       this.loadPopulationData = __bind(this.loadPopulationData, this);
+      this._load_by_income = __bind(this._load_by_income, this);
       this.appendHoverLayer = __bind(this.appendHoverLayer, this);
       this.appendCounties = __bind(this.appendCounties, this);
       this.zoom = __bind(this.zoom, this);
@@ -118,7 +119,8 @@
 
     CountyMap.prototype._colors = {
       percent_change: d3.scale.linear().domain([-1, -0.25, 0, 0.25, 1]).range(['#e74c3c', '#e74c3c', 'white', '#2ecc71', '#2ecc71']),
-      percent_population: d3.scale.linear().domain([0, 0.25, 1]).range(['#fff', '#3498DB', '#E74C3C'])
+      percent_population: d3.scale.linear().domain([0, 0.25, 1]).range(['#fff', '#3498DB', '#E74C3C']),
+      income: d3.scale.linear().domain([0, 50, 100]).range(['white', 'yellow', 'red'])
     };
 
     CountyMap.prototype.animateOnce = function() {
@@ -434,6 +436,13 @@
           });
         });
       });
+    };
+
+    CountyMap.prototype._load_by_income = function(year, race, age) {
+      d3.csv('income.csv', function(data) {
+        return console.log(data);
+      });
+      return console.log("load_by_income");
     };
 
     CountyMap.prototype.loadPopulationData = function(year, race, age) {
