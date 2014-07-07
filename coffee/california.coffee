@@ -1,6 +1,6 @@
-id = (d) -> d
+id    = (d) -> d
 value = (d) -> d.value
-text = (d) -> d.text
+text  = (d) -> d.text
 
 class CountyMapControls
   constructor: (map, meta) ->
