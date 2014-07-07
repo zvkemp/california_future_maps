@@ -42,13 +42,13 @@ class CountyMapControls
     selector.on('change', changeEvent) for selector in [years, races, ages]
     map.onLoad = changeEvent
 
-class CountyMap
+class window.CountyMap
   height: 800
   width: 1100
 
   onLoad: ->
 
-  constructor: (meta) ->
+  constructor: (meta, options = { mode: "percent_population" }) ->
     #@appendControls(meta)
     @svg = d3.select('body').append('svg')
       .attr('width', @width)
@@ -65,10 +65,9 @@ class CountyMap
       .translate([@width / 4, @height / 2])
     @path = d3.geo.path()
       .projection(@projection)
-    @colors = d3.scale.linear()
-      .domain([0, 0.25, 1])
-      .range(['#fff', '#3498DB', '#E74C3C'])
     @_meta = meta
+    @_mode = options.mode
+    @colors = @_colors[@_mode]
 
     d3.json('data/cali.json', (error, counties) =>
       @appendCounties(counties)
@@ -79,6 +78,15 @@ class CountyMap
       @appendZoomControls()
       @onLoad()
     )
+
+  _colors: {
+    percent_change: d3.scale.linear()
+      .domain([-1, -0.25, 0, 0.25, 1])
+      .range(['#e74c3c', '#e74c3c', 'white', '#2ecc71', '#2ecc71'])
+    percent_population: d3.scale.linear()
+      .domain([0, 0.25, 1])
+      .range(['#fff', '#3498DB', '#E74C3C'])
+  }
 
   animateOnce: ->
     years = @_meta.year.concat([])
@@ -195,13 +203,13 @@ class CountyMap
   appendControls: (meta) -> new CountyMapControls @, meta
 
   appendOutline: (counties) ->
-    # @outline = @svg.append('path')
-    #   .datum(topojson.mesh(counties, counties.objects.california_counties, (a, b) -> a == b and a.id == b.id))
-    #   .attr('class', 'outline')
-    #   .attr('d', @path)
-    #   .style('stroke', 'gray')
-    #   .style('stroke-width', '1pt')
-    #   .style('fill', 'none')
+    @outline = @svg.append('path')
+      .datum(topojson.mesh(counties, counties.objects.california_counties, (a, b) -> a == b and a.id == b.id))
+      .attr('class', 'outline')
+      .attr('d', @path)
+      .style('stroke', 'gray')
+      .style('stroke-width', '1pt')
+      .style('fill', 'none')
     # bay area outline
     @bay_area = @svg.append('path')
       .datum(
@@ -228,7 +236,7 @@ class CountyMap
     @hoverLayer.selectAll('text.value')
       .attr('x', (d) => @path.centroid(d)[0])
       .attr('y', (d) => @path.centroid(d)[1] + 15)
-    #@outline.transition().attr('d', @path)
+    @outline.transition().duration(1000).attr('d', @path)
     @bay_area.transition().duration(1000).attr('d', @path)
 
   appendCounties: (counties) =>
@@ -298,30 +306,60 @@ class CountyMap
     x = window.innerWidth
     y = window.innerHeight
 
-  loadPopulationData: (year, race, age) ->
-    age or= "all"
+  _load_by_percent_population: (year, race, age) ->
     @_requestData(year, race, age, (data) =>
       @_requestData(year, "all", "all", (totals) =>
+        pop = {}
+        (pop[row.county] = row) for row in data
+        (pop[row.county].total = row.estimate) for row in totals
 
-         pop = {}
-         (pop[row.county] = row) for row in data
-         (pop[row.county].total = row.estimate) for row in totals
+        colorWrapper = (value) =>
+         @colors(percentageOfTotal(value))
 
-         colorWrapper = (value) =>
-           @colors(percentageOfTotal(value))
+        percentageOfTotal = (d) ->
+         p = pop[d.properties.name]
+         p.estimate / p.total
 
-         percentageOfTotal = (d) ->
-           p = pop[d.properties.name]
-           p.estimate / p.total
-
-         @counties.selectAll('path.fill').transition().style('fill', (d) =>
-           @colors(percentageOfTotal(d))
-         )
-         @hoverLayer.selectAll('text.value')
-           .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
-         #@legendTextContent(year, race, age)
+        @counties.selectAll('path.fill').transition().style('fill', (d) =>
+          @colors(percentageOfTotal(d))
+        )
+        @hoverLayer.selectAll('text.value')
+         .text((d) -> "#{d3.round(100 * percentageOfTotal(d), 1)}%")
       )
     )
+
+  _load_by_percent_change: (year, race, age) ->
+    @_requestData(2010, race, age, (data2010) =>
+      @_requestData(2060, race, age, (data2060) =>
+        @_requestData(2010, 'all', 'all', (total2010) =>
+          @_requestData(2060, 'all', 'all', (total2060) =>
+            pop                           = {}
+            (pop[row.county]              = row) for row in data2010
+            (pop[row.county].total2010    = row.estimate) for row in total2010
+            (pop[row.county].estimate2060 = row.estimate) for row in data2060
+            (pop[row.county].total2060    = row.estimate) for row in total2060
+
+            colorWrapper = (value) =>
+              @colors(percentageChange(value))
+
+            percentageChange = (d) ->
+              p = pop[d.properties.name]
+              (p.estimate2060 / p.total2060) - (p.estimate / p.total2010)
+              #(p.estimate2060 - p.estimate) / p.estimate
+
+            @counties.selectAll('path.fill').transition().style('fill', (d) => @colors(percentageChange(d)))
+            @hoverLayer.selectAll('text.value')
+              .text((d) -> "#{d3.round(100 * percentageChange(d), 1)}%")
+
+          )
+        )
+      )
+    )
+
+  loadPopulationData: (year, race, age) =>
+    age or= "all"
+    @["_load_by_#{@_mode}"](year, race, age)
+
     # d3.json("/data.json?year=#{year}&race=#{race}&age_group=#{age}&gender=all", (data) =>
     #   d3.json("/data.json?year=#{year}&race=all&age_group=all&gender=all", (totals) =>
     #     pop = {}
@@ -355,6 +393,6 @@ class CountyMap
       )
 
 
-d3.json("/meta.json", (meta) ->
-  window.map = new CountyMap(meta)
-)
+#d3.json("/meta.json", (meta) ->
+#window.map = new CountyMap(meta)
+#)

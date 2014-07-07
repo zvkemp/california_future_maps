@@ -2,7 +2,9 @@
 %script{ type: "text/javascript", src: "http://d3js.org/topojson.v1.min.js" }
 %script{ type: "text/javascript", src: "js/california.js" }
 
+
 :coffee
   d3.json("/meta.json", (meta) ->
-    window.map = new CountyMap(meta)
+    window.map = new CountyMap(meta, { mode: "percent_change" })
   )
+
