@@ -2,7 +2,7 @@
 %script{ type: "text/javascript", src: "http://d3js.org/topojson.v1.min.js" }
 %script{ type: "text/javascript", src: "js/california.js" }
 
-:coffee
-  d3.json("/meta.json", (meta) ->
+:javascript
+  d3.json("/meta.json", function (meta) {
     window.map = new CountyMap(meta)
-  )
+  })
