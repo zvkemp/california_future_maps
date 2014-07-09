@@ -70,6 +70,7 @@ class window.CountyMap
     @colors = @_colors[@_mode]
 
     d3.json('data/cali.json', (error, counties) =>
+      #topojson.presimplify(counties, -> 100)
       @appendCounties(counties)
       @appendOutline(counties)
       @appendHoverLayer(counties)
@@ -89,6 +90,9 @@ class window.CountyMap
     income: d3.scale.linear()
       .domain([0, 30000, 50000, 100000])
       .range(['white', 'white', '#f1c40f', '#e74c3c'])
+    density: d3.scale.linear()
+      .domain([0, 5000, 20000]) #, 20000])
+      .range(['white', '#3498db', '#3498db']) #, '#9b59b6'])
   }
 
   animateOnce: ->
@@ -270,8 +274,6 @@ class window.CountyMap
     source = @legend.append('text').text('SOURCE: American Community Survey, 2012 5-Year Estimates')
       .style('font-size', '8pt')
 
-
-
   appendLegend_percent_population: ->
     @legend = @svg.append('g').attr('id', 'legend')
       .attr('transform', "translate(30, #{@height - 100})")
@@ -295,6 +297,38 @@ class window.CountyMap
       .style('font-size', 10)
       .style('font-weight', 'bold')
 
+  appendLegend_density: -> 
+    @legend = @svg.append('g').attr('id', 'legend')
+      .attr('transform', "translate(30, #{@height - 100})")
+    legendX = (d) -> 30 * d / 500
+    legendData = (n for n in [0..5000] by 500)
+    @legend.selectAll('rect').data(legendData)
+      .enter()
+      .append('rect')
+      .attr('x', legendX)
+      .attr('y', 10)
+      .attr('width', 30)
+      .attr('height', 30)
+      .style('stroke', 'white')
+      .style('fill', @colors)
+    format = (d) -> "#{d/1000}K"
+    @legend.selectAll('text.density').data(legendData)
+      .enter()
+      .append('text')
+      .attr('transform', (d) -> "translate(#{legendX(d) + 15}, 50)")
+      .text(format)
+      .style('text-anchor', 'middle')
+      .style('font-size', 10)
+      .style('font-weight', 'bold')
+    large_text = @legend.append('text').text("Population Density").attr('class', 'large')
+      .attr('transform', "translate(0, -35)")
+    small_text = @legend.append('text').text('PER SQUARE MILE').attr('class', 'small')
+      .attr('transform', "translate(0, -20)")
+    source = @legend.append('text').text('SOURCE: American Community Survey, 2012 5-Year Estimates')
+      .style('font-size', '8pt')
+
+
+  appendLiveLegend_density: -> @loadPopulationData()
 
   appendControls: (meta) -> new CountyMapControls @, meta
 
@@ -338,6 +372,7 @@ class window.CountyMap
   appendCounties: (counties) =>
     # This seems a little convuluted, but all is necessary to provide nice, non-overlapping
     # tooltips (outlines and county metadata) on mouseover.
+    # topojson.presimplify(counties)
     @counties = @svg.selectAll('.county')
       .data(topojson.feature(counties, counties.objects.california_counties).features)
       .enter().append('g')
@@ -465,6 +500,24 @@ class window.CountyMap
         .text((d) -> "$#{format(medianIncome(d))}")
 
     )
+
+  _load_by_density: (year, race, age) =>
+    d3.csv('population.csv', (data) =>
+      d3.csv('data/square_miles.csv', (area) =>
+
+        pop                = {}
+        areas              = {}
+        (pop[row.county]   = row) for row in data
+        (areas[row.county] = row.square_miles) for row in area
+        (row.density       = Math.round(row.population / areas[county])) for county, row of pop
+        density            = (d) -> pop[d.properties.name].density
+        #@colors.domain(d3.extent(row.density for _, row of pop))
+
+        @counties.selectAll('path.fill').transition().style('fill', (d) => @colors(density(d)))
+        @hoverLayer.selectAll('text.value').text((d) -> "#{density(d)} / sq. mile")
+      )
+    )
+
 
   loadPopulationData: (year, race, age) =>
     age or= "all"

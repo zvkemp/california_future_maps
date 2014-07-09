@@ -59,6 +59,10 @@ class CaliMaps < Sinatra::Base
     haml :income
   end
 
+  get '/density' do
+    haml :density
+  end
+
   # /data.json?county=SanFrancisco&race=all&age_group=all&year=2010
   get '/data.json' do
     content_type :json

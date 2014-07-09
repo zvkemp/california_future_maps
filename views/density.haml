@@ -1,0 +1,4 @@
+:javascript
+  d3.json("/meta.json", function (meta) {
+    window.map = new CountyMap(meta, { mode: "density" })
+  })

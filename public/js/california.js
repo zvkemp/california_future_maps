@@ -95,6 +95,7 @@
         };
       }
       this.loadPopulationData = __bind(this.loadPopulationData, this);
+      this._load_by_density = __bind(this._load_by_density, this);
       this._load_by_income = __bind(this._load_by_income, this);
       this.appendHoverLayer = __bind(this.appendHoverLayer, this);
       this.appendCounties = __bind(this.appendCounties, this);
@@ -120,7 +121,8 @@
     CountyMap.prototype._colors = {
       percent_change: d3.scale.linear().domain([-1, -0.25, 0, 0.25, 1]).range(['#e74c3c', '#e74c3c', 'white', '#2ecc71', '#2ecc71']),
       percent_population: d3.scale.linear().domain([0, 0.25, 1]).range(['#fff', '#3498DB', '#E74C3C']),
-      income: d3.scale.linear().domain([0, 30000, 50000, 100000]).range(['white', 'white', '#f1c40f', '#e74c3c'])
+      income: d3.scale.linear().domain([0, 30000, 50000, 100000]).range(['white', 'white', '#f1c40f', '#e74c3c']),
+      density: d3.scale.linear().domain([0, 5000, 20000]).range(['white', '#3498db', '#3498db'])
     };
 
     CountyMap.prototype.animateOnce = function() {
@@ -393,6 +395,36 @@
       }).text(percent).style('text-anchor', 'middle').style('font-size', 10).style('font-weight', 'bold');
     };
 
+    CountyMap.prototype.appendLegend_density = function() {
+      var format, large_text, legendData, legendX, n, small_text, source;
+      this.legend = this.svg.append('g').attr('id', 'legend').attr('transform', "translate(30, " + (this.height - 100) + ")");
+      legendX = function(d) {
+        return 30 * d / 500;
+      };
+      legendData = (function() {
+        var _i, _results;
+        _results = [];
+        for (n = _i = 0; _i <= 5000; n = _i += 500) {
+          _results.push(n);
+        }
+        return _results;
+      })();
+      this.legend.selectAll('rect').data(legendData).enter().append('rect').attr('x', legendX).attr('y', 10).attr('width', 30).attr('height', 30).style('stroke', 'white').style('fill', this.colors);
+      format = function(d) {
+        return "" + (d / 1000) + "K";
+      };
+      this.legend.selectAll('text.density').data(legendData).enter().append('text').attr('transform', function(d) {
+        return "translate(" + (legendX(d) + 15) + ", 50)";
+      }).text(format).style('text-anchor', 'middle').style('font-size', 10).style('font-weight', 'bold');
+      large_text = this.legend.append('text').text("Population Density").attr('class', 'large').attr('transform', "translate(0, -35)");
+      small_text = this.legend.append('text').text('PER SQUARE MILE').attr('class', 'small').attr('transform', "translate(0, -20)");
+      return source = this.legend.append('text').text('SOURCE: American Community Survey, 2012 5-Year Estimates').style('font-size', '8pt');
+    };
+
+    CountyMap.prototype.appendLiveLegend_density = function() {
+      return this.loadPopulationData();
+    };
+
     CountyMap.prototype.appendControls = function(meta) {
       return new CountyMapControls(this, meta);
     };
@@ -573,6 +605,38 @@
         });
         return _this.hoverLayer.selectAll('text.value').text(function(d) {
           return "$" + (format(medianIncome(d)));
+        });
+      });
+    };
+
+    CountyMap.prototype._load_by_density = function(year, race, age) {
+      var _this = this;
+      return d3.csv('population.csv', function(data) {
+        return d3.csv('data/square_miles.csv', function(area) {
+          var areas, county, density, pop, row, _i, _j, _len, _len1;
+          pop = {};
+          areas = {};
+          for (_i = 0, _len = data.length; _i < _len; _i++) {
+            row = data[_i];
+            pop[row.county] = row;
+          }
+          for (_j = 0, _len1 = area.length; _j < _len1; _j++) {
+            row = area[_j];
+            areas[row.county] = row.square_miles;
+          }
+          for (county in pop) {
+            row = pop[county];
+            row.density = Math.round(row.population / areas[county]);
+          }
+          density = function(d) {
+            return pop[d.properties.name].density;
+          };
+          _this.counties.selectAll('path.fill').transition().style('fill', function(d) {
+            return _this.colors(density(d));
+          });
+          return _this.hoverLayer.selectAll('text.value').text(function(d) {
+            return "" + (density(d)) + " / sq. mile";
+          });
         });
       });
     };
