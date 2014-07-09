@@ -88,7 +88,7 @@
     CountyMap.prototype.onLoad = function() {};
 
     function CountyMap(meta, options) {
-      var modes,
+      var modes, table, tbody, tr,
         _this = this;
       if (options == null) {
         options = {
@@ -110,26 +110,33 @@
         {
           mode: "percent_population",
           name: "Demographic Cohorts",
-          description: "DESCRIPTION"
+          description: "For each selectable age category and ethnic group, shows the           percentage of that groups representation in each county. Projections made by          the California Department of Finance Demographic Research Unit."
         }, {
           mode: "percent_change",
           name: "Change in Demographic Cohorts",
-          description: "DESCRIPTION"
+          description: "For each selectable age category and ethnic group, shows the change in percentage          for each county over a 50-year period."
         }, {
           mode: "income",
           name: "Median Household Income",
-          description: "DESCRIPTION"
+          description: "Median household income by county.           Data from the American Community Survey (US Census Dept) 2012 5-year Estimates."
         }, {
           mode: "density",
           name: "Population Density",
-          description: "DESCRIPRION"
+          description: "Raw population estimates divided by the area of the county.          Data from the American Community Survey (US Census Dept) 2012 5-year Estimates."
         }
       ];
-      this.modeSelection = d3.select('#main').append('table').attr('id', 'mode_selection').append('tbody').append('tr');
+      table = d3.select('#main').append('table').attr('id', 'mode_selection');
+      table.append('thead');
+      tbody = table.append('tbody');
+      this.modeSelection = tbody.append('tr');
       this.modeSelection.selectAll('td.button').data(modes).enter().append('td').attr('class', 'button').text(function(d) {
         return d.name;
       }).on('click', function(d) {
         return _this.changeMode(d.mode);
+      });
+      tr = tbody.append('tr');
+      tr.selectAll('td.description').data(modes).enter().append('td').attr('class', 'description').text(function(d) {
+        return d.description;
       });
       d3.json('data/cali.json', function(error, counties) {
         _this.appendCounties(counties);
