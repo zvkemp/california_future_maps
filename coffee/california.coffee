@@ -50,7 +50,7 @@ class window.CountyMap
 
   constructor: (meta, options = { mode: "percent_population" }) ->
     #@appendControls(meta)
-    @svg = d3.select('body').append('svg')
+    @svg = d3.select('#main').append('svg')
       .attr('width', @width)
       .attr('height', @height)
     @svg.append('rect').attr('width', @width)
@@ -66,6 +66,34 @@ class window.CountyMap
     @path = d3.geo.path()
       .projection(@projection)
     @_meta = meta
+    modes = [
+      {
+        mode: "percent_population"
+        name: "Demographic Cohorts"
+        description: "DESCRIPTION"
+      }, {
+        mode: "percent_change"
+        name: "Change in Demographic Cohorts"
+        description: "DESCRIPTION"
+      }, {
+        mode: "income"
+        name: "Median Household Income"
+        description: "DESCRIPTION"
+      }, {
+        mode: "density"
+        name: "Population Density"
+        description: "DESCRIPRION"
+      }
+    ]
+
+    @modeSelection = d3.select('#main').append('table').attr('id', 'mode_selection')
+      .append('tbody')
+      .append('tr')
+    @modeSelection.selectAll('td.button').data(modes)
+      .enter()
+      .append('td').attr('class', 'button')
+      .text((d) -> d.name)
+      .on('click', (d) => @changeMode(d.mode))
 
     d3.json('data/cali.json', (error, counties) =>
       #topojson.presimplify(counties, -> 100)
@@ -74,8 +102,12 @@ class window.CountyMap
       @appendHoverLayer(counties)
       @appendZoomControls()
       @changeMode(options.mode)
-      @onLoad()
     )
+
+
+  setModeSelectorClass: ->
+    @modeSelection.selectAll('td.button')
+      .classed('active', (d) => d.mode is @_mode)
 
   mode: (d) ->
     if d
@@ -91,6 +123,7 @@ class window.CountyMap
     @["appendLegend_#{@_mode}"]()
     @["appendLiveLegend_#{@_mode}"]()
     @onLoad()
+    @setModeSelectorClass()
 
 
   _colors: {
@@ -524,10 +557,11 @@ class window.CountyMap
         (areas[row.county] = row.square_miles) for row in area
         (row.density       = Math.round(row.population / areas[county])) for county, row of pop
         density            = (d) -> pop[d.properties.name].density
+        format             = d3.format("0,000")
         #@colors.domain(d3.extent(row.density for _, row of pop))
 
         @counties.selectAll('path.fill').transition().style('fill', (d) => @colors(density(d)))
-        @hoverLayer.selectAll('text.value').text((d) -> "#{density(d)} / sq. mile")
+        @hoverLayer.selectAll('text.value').text((d) -> "#{format(density(d))} / sq. mile")
       )
     )
 

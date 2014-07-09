@@ -88,7 +88,8 @@
     CountyMap.prototype.onLoad = function() {};
 
     function CountyMap(meta, options) {
-      var _this = this;
+      var modes,
+        _this = this;
       if (options == null) {
         options = {
           mode: "percent_population"
@@ -100,20 +101,51 @@
       this.appendHoverLayer = __bind(this.appendHoverLayer, this);
       this.appendCounties = __bind(this.appendCounties, this);
       this.zoom = __bind(this.zoom, this);
-      this.svg = d3.select('body').append('svg').attr('width', this.width).attr('height', this.height);
+      this.svg = d3.select('#main').append('svg').attr('width', this.width).attr('height', this.height);
       this.svg.append('rect').attr('width', this.width).attr('height', this.height).style('fill', '#f9f9f9').style('stroke', 'gray');
       this.projection = d3.geo.albers().scale(14000).rotate([122.8600, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
       this.path = d3.geo.path().projection(this.projection);
       this._meta = meta;
+      modes = [
+        {
+          mode: "percent_population",
+          name: "Demographic Cohorts",
+          description: "DESCRIPTION"
+        }, {
+          mode: "percent_change",
+          name: "Change in Demographic Cohorts",
+          description: "DESCRIPTION"
+        }, {
+          mode: "income",
+          name: "Median Household Income",
+          description: "DESCRIPTION"
+        }, {
+          mode: "density",
+          name: "Population Density",
+          description: "DESCRIPRION"
+        }
+      ];
+      this.modeSelection = d3.select('#main').append('table').attr('id', 'mode_selection').append('tbody').append('tr');
+      this.modeSelection.selectAll('td.button').data(modes).enter().append('td').attr('class', 'button').text(function(d) {
+        return d.name;
+      }).on('click', function(d) {
+        return _this.changeMode(d.mode);
+      });
       d3.json('data/cali.json', function(error, counties) {
         _this.appendCounties(counties);
         _this.appendOutline(counties);
         _this.appendHoverLayer(counties);
         _this.appendZoomControls();
-        _this.changeMode(options.mode);
-        return _this.onLoad();
+        return _this.changeMode(options.mode);
       });
     }
+
+    CountyMap.prototype.setModeSelectorClass = function() {
+      var _this = this;
+      return this.modeSelection.selectAll('td.button').classed('active', function(d) {
+        return d.mode === _this._mode;
+      });
+    };
 
     CountyMap.prototype.mode = function(d) {
       if (d) {
@@ -134,7 +166,8 @@
       }
       this["appendLegend_" + this._mode]();
       this["appendLiveLegend_" + this._mode]();
-      return this.onLoad();
+      this.onLoad();
+      return this.setModeSelectorClass();
     };
 
     CountyMap.prototype._colors = {
@@ -632,7 +665,7 @@
       var _this = this;
       return d3.csv('population.csv', function(data) {
         return d3.csv('data/square_miles.csv', function(area) {
-          var areas, county, density, pop, row, _i, _j, _len, _len1;
+          var areas, county, density, format, pop, row, _i, _j, _len, _len1;
           pop = {};
           areas = {};
           for (_i = 0, _len = data.length; _i < _len; _i++) {
@@ -650,11 +683,12 @@
           density = function(d) {
             return pop[d.properties.name].density;
           };
+          format = d3.format("0,000");
           _this.counties.selectAll('path.fill').transition().style('fill', function(d) {
             return _this.colors(density(d));
           });
           return _this.hoverLayer.selectAll('text.value').text(function(d) {
-            return "" + (density(d)) + " / sq. mile";
+            return "" + (format(density(d))) + " / sq. mile";
           });
         });
       });
