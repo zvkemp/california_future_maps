@@ -122,7 +122,7 @@
       percent_change: d3.scale.linear().domain([-1, -0.25, 0, 0.25, 1]).range(['#e74c3c', '#e74c3c', 'white', '#2ecc71', '#2ecc71']),
       percent_population: d3.scale.linear().domain([0, 0.25, 1]).range(['#fff', '#3498DB', '#E74C3C']),
       income: d3.scale.linear().domain([0, 30000, 50000, 100000]).range(['white', 'white', '#f1c40f', '#e74c3c']),
-      density: d3.scale.linear().domain([0, 5000, 20000]).range(['white', '#3498db', '#3498db'])
+      density: d3.scale.linear().domain([0, 2000, 5000, 20000]).range(['white', '#3498db', '#1ABC9C', '#1ABC9C'])
     };
 
     CountyMap.prototype.animateOnce = function() {

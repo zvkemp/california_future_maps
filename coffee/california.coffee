@@ -91,8 +91,8 @@ class window.CountyMap
       .domain([0, 30000, 50000, 100000])
       .range(['white', 'white', '#f1c40f', '#e74c3c'])
     density: d3.scale.linear()
-      .domain([0, 5000, 20000]) #, 20000])
-      .range(['white', '#3498db', '#3498db']) #, '#9b59b6'])
+      .domain([0, 2000, 5000, 20000]) #, 20000])
+      .range(['white', '#3498db', '#1ABC9C', '#1ABC9C']) #, '#9b59b6'])
   }
 
   animateOnce: ->
