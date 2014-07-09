@@ -66,19 +66,32 @@ class window.CountyMap
     @path = d3.geo.path()
       .projection(@projection)
     @_meta = meta
-    @_mode = options.mode
-    @colors = @_colors[@_mode]
 
     d3.json('data/cali.json', (error, counties) =>
       #topojson.presimplify(counties, -> 100)
       @appendCounties(counties)
       @appendOutline(counties)
       @appendHoverLayer(counties)
-      @["appendLegend_#{@_mode}"]()
-      @["appendLiveLegend_#{@_mode}"]()
       @appendZoomControls()
+      @changeMode(options.mode)
       @onLoad()
     )
+
+  mode: (d) ->
+    if d
+      @_mode = d
+      return @
+    @_mode
+
+  changeMode: (mode) ->
+    @_mode = mode
+    @colors = @_colors[@_mode]
+    @legend.remove() if @legend
+    @liveLegend.remove() if @liveLegend
+    @["appendLegend_#{@_mode}"]()
+    @["appendLiveLegend_#{@_mode}"]()
+    @onLoad()
+
 
   _colors: {
     percent_change: d3.scale.linear()

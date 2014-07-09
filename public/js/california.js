@@ -105,18 +105,37 @@
       this.projection = d3.geo.albers().scale(14000).rotate([122.8600, 0, 0]).center([0, 37.3500]).parallels([36, 35]).translate([this.width / 4, this.height / 2]);
       this.path = d3.geo.path().projection(this.projection);
       this._meta = meta;
-      this._mode = options.mode;
-      this.colors = this._colors[this._mode];
       d3.json('data/cali.json', function(error, counties) {
         _this.appendCounties(counties);
         _this.appendOutline(counties);
         _this.appendHoverLayer(counties);
-        _this["appendLegend_" + _this._mode]();
-        _this["appendLiveLegend_" + _this._mode]();
         _this.appendZoomControls();
+        _this.changeMode(options.mode);
         return _this.onLoad();
       });
     }
+
+    CountyMap.prototype.mode = function(d) {
+      if (d) {
+        this._mode = d;
+        return this;
+      }
+      return this._mode;
+    };
+
+    CountyMap.prototype.changeMode = function(mode) {
+      this._mode = mode;
+      this.colors = this._colors[this._mode];
+      if (this.legend) {
+        this.legend.remove();
+      }
+      if (this.liveLegend) {
+        this.liveLegend.remove();
+      }
+      this["appendLegend_" + this._mode]();
+      this["appendLiveLegend_" + this._mode]();
+      return this.onLoad();
+    };
 
     CountyMap.prototype._colors = {
       percent_change: d3.scale.linear().domain([-1, -0.25, 0, 0.25, 1]).range(['#e74c3c', '#e74c3c', 'white', '#2ecc71', '#2ecc71']),
