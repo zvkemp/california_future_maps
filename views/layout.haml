@@ -60,6 +60,14 @@
         background-color: #f9f9f9;
       }
 
+      .muted {
+        color: gray;
+      }
+
+      #footer {
+        margin-top: 20px;
+      }
+
 
     %script{ type: "text/javascript", src: "http://d3js.org/d3.v3.min.js" }
     %script{ type: "text/javascript", src: "http://d3js.org/topojson.v1.min.js" }
@@ -71,11 +79,19 @@
   %body
     #wrapper
       #header
+        %h2 Bay Area Demographic Trends
 
       #main
         =yield
 
       #footer
+        %p
+          %small.muted
+            Data from the California Department of Finance and the US Census Bureau.
+
+        %p
+          %a{ href: 'using_the_map.png', target: "_blank" } Click here for help using the map.
+
 
     
 
